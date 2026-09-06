@@ -1,0 +1,1009 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Snapduel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,500&family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<!-- Firebase (free tier) - provides shared storage so friends can see each other's data -->
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-database-compat.js"></script>
+<style>
+  :root{
+    --bg:#1B1420;
+    --surface:#26192B;
+    --surface-2:#32222E;
+    --accent:#FFC145;
+    --accent-2:#FF6F59;
+    --text:#F5EFE6;
+    --text-muted:#B9A9C4;
+    --border: rgba(245,239,230,0.14);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Public Sans', sans-serif;
+    min-height:100vh;
+    -webkit-font-smoothing:antialiased;
+  }
+  #root{min-height:100vh;}
+  h1,h2,h3, .display{
+    font-family:'Fraunces', serif;
+    font-weight:600;
+    letter-spacing:-0.01em;
+  }
+  button{
+    font-family:inherit;
+    cursor:pointer;
+    border:none;
+  }
+  input{
+    font-family:inherit;
+  }
+  ::selection{ background:var(--accent); color:#1B1420; }
+
+  /* ---------- Setup screen ---------- */
+  .setup-wrap{
+    min-height:100vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:24px;
+  }
+  .setup-card{
+    width:100%;
+    max-width:560px;
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:18px;
+    padding:36px 32px;
+  }
+  .setup-card h2{ font-size:22px; margin:0 0 12px; }
+  .setup-card p{ color:var(--text-muted); font-size:14.5px; line-height:1.6; }
+  .setup-card ol{ color:var(--text-muted); font-size:14.5px; line-height:1.9; padding-left:20px; }
+  .setup-card code{ background:var(--surface-2); padding:2px 6px; border-radius:5px; color:var(--text); font-size:13px; }
+
+  /* ---------- Auth screen ---------- */
+  .auth-wrap{
+    min-height:100vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:24px;
+  }
+  .auth-card{
+    width:100%;
+    max-width:420px;
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:18px;
+    padding:36px 32px;
+    position:relative;
+  }
+  .auth-brand{
+    display:flex;
+    align-items:baseline;
+    gap:10px;
+    margin-bottom:6px;
+  }
+  .auth-brand .dot{
+    width:10px;height:10px;border-radius:50%;
+    background:var(--accent-2);
+    display:inline-block;
+  }
+  .auth-brand h1{ font-size:28px; margin:0; }
+  .auth-sub{ color:var(--text-muted); font-size:14.5px; margin:0 0 26px; line-height:1.5;}
+  .seg{
+    display:flex;
+    background:var(--surface-2);
+    border-radius:12px;
+    padding:4px;
+    margin-bottom:22px;
+  }
+  .seg button{
+    flex:1;
+    background:transparent;
+    color:var(--text-muted);
+    padding:9px 0;
+    border-radius:9px;
+    font-size:14px;
+    font-weight:600;
+    transition:background .15s ease, color .15s ease;
+  }
+  .seg button.active{
+    background:var(--accent);
+    color:#241708;
+  }
+  label{
+    display:block;
+    font-size:12.5px;
+    color:var(--text-muted);
+    margin-bottom:7px;
+    font-weight:600;
+  }
+  .field{ margin-bottom:16px; }
+  .field input{
+    width:100%;
+    background:#1B1420;
+    border:1px solid var(--border);
+    color:var(--text);
+    padding:12px 14px;
+    border-radius:10px;
+    font-size:15px;
+    outline:none;
+  }
+  .field input:focus{ border-color:var(--accent); }
+  .code-input{ text-transform:uppercase; letter-spacing:0.14em; font-weight:600; }
+  .primary-btn{
+    width:100%;
+    background:var(--accent);
+    color:#241708;
+    padding:13px 0;
+    border-radius:10px;
+    font-size:15px;
+    font-weight:700;
+    margin-top:6px;
+    transition:transform .12s ease;
+  }
+  .primary-btn:active{ transform:scale(0.98); }
+  .primary-btn:disabled{ opacity:0.5; cursor:default; }
+  .error-msg{
+    color:var(--accent-2);
+    font-size:13.5px;
+    margin:-6px 0 14px;
+  }
+  .hint{ color:var(--text-muted); font-size:12.5px; margin-top:16px; line-height:1.5; }
+
+  /* ---------- App shell ---------- */
+  .app-shell{
+    display:flex;
+    min-height:100vh;
+  }
+  .sidebar{
+    width:240px;
+    flex-shrink:0;
+    background:var(--surface);
+    border-right:1px solid var(--border);
+    padding:26px 20px;
+    display:flex;
+    flex-direction:column;
+  }
+  .group-badge{
+    background:var(--surface-2);
+    border:1px dashed var(--border);
+    border-radius:12px;
+    padding:14px;
+    margin-bottom:22px;
+  }
+  .group-badge .label{ font-size:11px; color:var(--text-muted); font-weight:600; margin-bottom:6px;}
+  .group-badge .code{ font-size:22px; letter-spacing:0.12em; font-weight:700; font-family:'Fraunces',serif;}
+  .members{ margin-bottom:26px; }
+  .members .label{ font-size:11px; color:var(--text-muted); font-weight:600; margin-bottom:8px;}
+  .member-chip{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    padding:6px 0;
+    font-size:14px;
+  }
+  .member-dot{
+    width:8px;height:8px;border-radius:50%;
+    background:var(--accent-2);
+    flex-shrink:0;
+  }
+  .member-dot.you{ background:var(--accent); }
+  .nav{ display:flex; flex-direction:column; gap:6px; margin-bottom:auto; }
+  .nav button{
+    text-align:left;
+    background:transparent;
+    color:var(--text-muted);
+    padding:11px 14px;
+    border-radius:10px;
+    font-size:14.5px;
+    font-weight:600;
+    display:flex;
+    align-items:center;
+    gap:10px;
+  }
+  .nav button.active{
+    background:var(--surface-2);
+    color:var(--text);
+  }
+  .nav button:hover{ color:var(--text); }
+  .leave-btn{
+    background:transparent;
+    color:var(--text-muted);
+    font-size:13px;
+    padding:8px 0;
+    text-align:left;
+  }
+  .leave-btn:hover{ color:var(--accent-2); }
+
+  .main{
+    flex:1;
+    padding:40px 44px;
+    overflow-y:auto;
+    max-width:920px;
+  }
+  .page-title{ font-size:26px; margin:0 0 6px; }
+  .page-sub{ color:var(--text-muted); font-size:14.5px; margin:0 0 30px; }
+
+  /* ---------- Compete page ---------- */
+  .ticket{
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:20px;
+    padding:34px;
+    position:relative;
+    max-width:560px;
+  }
+  .ticket:before{
+    content:"";
+    position:absolute;
+    left:-11px; top:50%;
+    width:22px;height:22px;
+    background:var(--bg);
+    border:1px solid var(--border);
+    border-radius:50%;
+    transform:translateY(-50%);
+  }
+  .ticket:after{
+    content:"";
+    position:absolute;
+    right:-11px; top:50%;
+    width:22px;height:22px;
+    background:var(--bg);
+    border:1px solid var(--border);
+    border-radius:50%;
+    transform:translateY(-50%);
+  }
+  .ticket-row{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:22px;
+  }
+  .vs-pill{
+    background:var(--surface-2);
+    border-radius:20px;
+    padding:6px 14px;
+    font-size:13px;
+    color:var(--text-muted);
+  }
+  .vs-pill b{ color:var(--text); }
+  .countdown{
+    font-size:14px;
+    color:var(--accent);
+    font-weight:700;
+    font-variant-numeric:tabular-nums;
+  }
+  .prompt-text{
+    font-size:30px;
+    line-height:1.28;
+    margin:0 0 26px;
+  }
+  .dropzone{
+    border:1.5px dashed var(--border);
+    border-radius:14px;
+    padding:34px 18px;
+    text-align:center;
+    color:var(--text-muted);
+    cursor:pointer;
+    transition:border-color .15s ease, background .15s ease;
+    display:block;
+  }
+  .dropzone:hover{ border-color:var(--accent); background:rgba(255,193,69,0.05); }
+  .dropzone input{ display:none; }
+  .dropzone .big{ font-size:15px; color:var(--text); font-weight:600; margin-bottom:4px;}
+  .submitted-wrap{ text-align:center; }
+  .submitted-img{
+    width:100%;
+    max-width:320px;
+    border-radius:14px;
+    border:1px solid var(--border);
+    margin:0 auto 16px;
+    display:block;
+  }
+  .status-line{ font-size:14px; color:var(--text-muted); }
+  .status-line.good{ color:var(--accent); }
+  .resting-card{ color:var(--text-muted); font-size:15px; line-height:1.6; }
+
+  /* ---------- Vote page ---------- */
+  .matchup{
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:18px;
+    padding:22px;
+    margin-bottom:22px;
+  }
+  .matchup-prompt{
+    font-size:18px;
+    margin:0 0 16px;
+  }
+  .diptych{
+    display:flex;
+    gap:2px;
+    border-radius:12px;
+    overflow:hidden;
+    position:relative;
+  }
+  .half{
+    flex:1;
+    position:relative;
+    cursor:pointer;
+    background:#000;
+  }
+  .half img{
+    width:100%;
+    height:260px;
+    object-fit:cover;
+    display:block;
+    opacity:0.92;
+    transition:opacity .15s ease;
+  }
+  .half:hover img{ opacity:1; }
+  .half.voted img{ opacity:1; }
+  .half .name-tag{
+    position:absolute;
+    bottom:0; left:0; right:0;
+    padding:10px 12px;
+    background:linear-gradient(transparent, rgba(0,0,0,0.75));
+    font-size:13.5px;
+    font-weight:600;
+  }
+  .half .check{
+    position:absolute;
+    top:10px; right:10px;
+    width:26px;height:26px;
+    border-radius:50%;
+    background:var(--accent-2);
+    color:#241708;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:14px;
+    font-weight:800;
+  }
+  .vs-badge{
+    position:absolute;
+    top:50%; left:50%;
+    transform:translate(-50%,-50%);
+    width:36px;height:36px;
+    background:var(--bg);
+    border:1px solid var(--border);
+    border-radius:50%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:11px;
+    font-weight:700;
+    color:var(--text-muted);
+    z-index:2;
+  }
+  .tally-row{
+    display:flex;
+    gap:2px;
+    margin-top:10px;
+  }
+  .tally-bar{ flex:1; }
+  .tally-bar .bar-track{
+    background:var(--surface-2);
+    border-radius:6px;
+    height:6px;
+    overflow:hidden;
+    margin-bottom:6px;
+  }
+  .tally-bar .bar-fill{
+    background:var(--accent);
+    height:100%;
+  }
+  .tally-bar .bar-label{ font-size:12.5px; color:var(--text-muted); }
+  .empty-state{
+    color:var(--text-muted);
+    font-size:15px;
+    line-height:1.6;
+    padding:40px 0;
+    max-width:420px;
+  }
+  .loading{ color:var(--text-muted); font-size:14px; padding:20px 0; }
+
+  @media (max-width: 760px){
+    .app-shell{ flex-direction:column; }
+    .sidebar{
+      width:100%;
+      border-right:none;
+      border-bottom:1px solid var(--border);
+      padding:18px 20px;
+    }
+    .members{ display:none; }
+    .nav{ flex-direction:row; margin-bottom:0; }
+    .nav button{ flex:1; justify-content:center; }
+    .main{ padding:26px 20px; max-width:none; }
+    .diptych{ flex-direction:column; }
+    .half img{ height:200px; }
+    .vs-badge{ top:50%; }
+  }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script>
+(function(){
+
+  // ======================================================================
+  // FIREBASE SETUP — fill this in with YOUR OWN free Firebase project.
+  // See the on-screen setup instructions (shown until this is filled in).
+  // ======================================================================
+  var firebaseConfig = {
+    apiKey: "YOUR_API_KEY",
+    authDomain: "YOUR_PROJECT.firebaseapp.com",
+    databaseURL: "https://YOUR_PROJECT-default-rtdb.firebaseio.com",
+    projectId: "YOUR_PROJECT"
+  };
+  // ======================================================================
+
+  var PROMPTS = [
+    "Something that makes you smile",
+    "The weirdest thing in your fridge",
+    "Your view right now",
+    "Something you use every day",
+    "A shadow you like",
+    "Something red",
+    "Your favorite mug",
+    "A tiny detail nobody notices",
+    "Something you'd never usually photograph",
+    "The last thing you touched",
+    "A reflection",
+    "Something that smells good",
+    "Your workspace, mid-task",
+    "Something older than you",
+    "A pattern or texture",
+    "Something you're proud of",
+    "The sky, right now",
+    "Your go-to snack",
+    "Something perfectly out of place",
+    "A close-up of your shoes",
+    "Something you own but rarely use",
+    "A door you walk through often",
+    "Something handmade",
+    "The most colorful thing nearby"
+  ];
+
+  var root = document.getElementById('root');
+  var db = null;
+
+  var state = {
+    screen: 'loading', // loading | setup | auth | app
+    authMode: 'create', // create | join
+    username: null,
+    groupCode: null,
+    tab: 'compete',
+    error: ''
+  };
+
+  function isConfigured(){
+    return firebaseConfig.apiKey && firebaseConfig.apiKey.indexOf('YOUR_') !== 0
+      && firebaseConfig.databaseURL && firebaseConfig.databaseURL.indexOf('YOUR_') === -1;
+  }
+
+  function todayStr(){
+    var d = new Date();
+    return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+  }
+  function msUntilMidnight(){
+    var now = new Date();
+    var next = new Date(now.getFullYear(), now.getMonth(), now.getDate()+1, 0,0,0,0);
+    return next - now;
+  }
+  function genCode(){
+    var chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    var out = '';
+    for(var i=0;i<6;i++) out += chars[Math.floor(Math.random()*chars.length)];
+    return out;
+  }
+  function shuffle(arr){
+    var a = arr.slice();
+    for(var i=a.length-1;i>0;i--){
+      var j = Math.floor(Math.random()*(i+1));
+      var tmp=a[i]; a[i]=a[j]; a[j]=tmp;
+    }
+    return a;
+  }
+  function esc(s){
+    var d = document.createElement('div');
+    d.textContent = s == null ? '' : s;
+    return d.innerHTML;
+  }
+
+  // ---------- session (local to this browser) ----------
+  function getSession(){
+    try{ var raw = localStorage.getItem('snapduel_session'); return raw ? JSON.parse(raw) : null; }
+    catch(e){ return null; }
+  }
+  function setSession(obj){
+    try{
+      if(obj) localStorage.setItem('snapduel_session', JSON.stringify(obj));
+      else localStorage.removeItem('snapduel_session');
+    }catch(e){}
+  }
+
+  // ---------- Firebase data helpers ----------
+  function groupRef(code){ return db.ref('groups/' + code); }
+
+  async function getGroup(code){
+    var snap = await groupRef(code).once('value');
+    var val = snap.val();
+    if(!val) return null;
+    return {
+      code: code,
+      createdAt: val.createdAt,
+      members: val.members ? Object.keys(val.members) : []
+    };
+  }
+  async function createGroup(code, username){
+    await groupRef(code).set({ createdAt: Date.now(), members: { }});
+    await groupRef(code).child('members').update((function(){ var o={}; o[username]=true; return o; })());
+  }
+  async function joinGroup(code, username){
+    var o = {}; o[username] = true;
+    await groupRef(code).child('members').update(o);
+  }
+
+  async function ensureRound(code, date){
+    var ref = groupRef(code).child('rounds').child(date);
+    var snap = await ref.once('value');
+    if(snap.val()) return snap.val();
+    var group = await getGroup(code);
+    if(!group) return null;
+    var members = shuffle(group.members);
+    var prompts = shuffle(PROMPTS);
+    var pairs = [];
+    var resting = null;
+    var pi = 0;
+    for(var i=0; i+1<members.length; i+=2){
+      pairs.push({
+        id: 'p'+(i/2),
+        users: [members[i], members[i+1]],
+        prompt: prompts[pi % prompts.length]
+      });
+      pi++;
+    }
+    if(members.length % 2 === 1) resting = members[members.length-1];
+    var round = { date: date, pairs: pairs, resting: resting, generatedAt: Date.now() };
+    // Atomic create-if-absent so two people loading at once don't create two different rounds.
+    var result = await ref.transaction(function(current){
+      return current === null ? round : undefined;
+    });
+    return result.snapshot.val();
+  }
+
+  async function getSubmission(code, date, username){
+    var snap = await groupRef(code).child('submissions').child(date).child(username).once('value');
+    return snap.val();
+  }
+  async function setSubmission(code, date, username, dataUrl){
+    await groupRef(code).child('submissions').child(date).child(username).set({ dataUrl: dataUrl, ts: Date.now() });
+  }
+
+  async function getVoteMap(code, date, voter){
+    var snap = await groupRef(code).child('votes').child(date).child(voter).once('value');
+    return snap.val() || {};
+  }
+  async function castVote(code, date, voter, pairId, choice){
+    await groupRef(code).child('votes').child(date).child(voter).child(pairId).set(choice);
+  }
+  async function tallyPair(code, date, pair){
+    var snap = await groupRef(code).child('votes').child(date).once('value');
+    var all = snap.val() || {};
+    var counts = {}; pair.users.forEach(function(u){ counts[u]=0; });
+    Object.keys(all).forEach(function(voter){
+      var choice = all[voter] ? all[voter][pair.id] : null;
+      if(choice && counts.hasOwnProperty(choice)) counts[choice]++;
+    });
+    return counts;
+  }
+
+  function resizeImage(file){
+    return new Promise(function(resolve, reject){
+      var reader = new FileReader();
+      reader.onload = function(e){
+        var img = new Image();
+        img.onload = function(){
+          var maxW = 900;
+          var scale = Math.min(1, maxW / img.width);
+          var w = Math.round(img.width * scale);
+          var h = Math.round(img.height * scale);
+          var canvas = document.createElement('canvas');
+          canvas.width = w; canvas.height = h;
+          var ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, w, h);
+          resolve(canvas.toDataURL('image/jpeg', 0.72));
+        };
+        img.onerror = reject;
+        img.src = e.target.result;
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+
+  // ---------- render ----------
+  async function render(){
+    if(state.screen === 'loading'){
+      root.innerHTML = '<div class="auth-wrap"><div class="hint">Loading…</div></div>';
+      return;
+    }
+    if(state.screen === 'setup'){
+      renderSetup();
+      return;
+    }
+    if(state.screen === 'auth'){
+      renderAuth();
+      return;
+    }
+    if(state.screen === 'app'){
+      await renderApp();
+      return;
+    }
+  }
+
+  function renderSetup(){
+    root.innerHTML =
+      '<div class="setup-wrap"><div class="setup-card">' +
+        '<h2>One-time setup needed</h2>' +
+        '<p>This app needs a free Firebase database so everyone in a group can see the same prompts, photos, and votes. Takes about 3 minutes:</p>' +
+        '<ol>' +
+          '<li>Go to <code>console.firebase.google.com</code> and create a free project.</li>' +
+          '<li>In the left menu, open <code>Build → Realtime Database</code> and click "Create Database" (start in <b>test mode</b>).</li>' +
+          '<li>Click the gear icon → <b>Project settings</b>, scroll to "Your apps", click the <code>&lt;/&gt;</code> (web) icon, and register an app.</li>' +
+          '<li>Copy the <code>firebaseConfig</code> object it shows you.</li>' +
+          '<li>Open this file\'s HTML in a text editor, find <code>firebaseConfig</code> near the top of the script, and paste your values in.</li>' +
+          '<li>Save, re-upload, and reload this page.</li>' +
+        '</ol>' +
+        '<p>Ask me if you\'d like the exact rules text to paste into the Realtime Database "Rules" tab.</p>' +
+      '</div></div>';
+  }
+
+  function renderAuth(){
+    var isCreate = state.authMode === 'create';
+    root.innerHTML =
+      '<div class="auth-wrap"><div class="auth-card">' +
+        '<div class="auth-brand"><span class="dot"></span><h1>Snapduel</h1></div>' +
+        '<p class="auth-sub">A daily photo challenge for your friend group. Get paired up, snap a photo before time runs out, then vote on everyone else\'s matchups.</p>' +
+        '<div class="seg">' +
+          '<button data-mode="create" class="'+(isCreate?'active':'')+'">New group</button>' +
+          '<button data-mode="join" class="'+(!isCreate?'active':'')+'">Join a group</button>' +
+        '</div>' +
+        '<div class="field"><label>Your name</label><input id="usernameInput" type="text" maxlength="20" placeholder="e.g. Jordan" /></div>' +
+        (isCreate ? '' :
+          '<div class="field"><label>Group code</label><input id="codeInput" class="code-input" type="text" maxlength="6" placeholder="ABC123" /></div>'
+        ) +
+        (state.error ? '<div class="error-msg">'+esc(state.error)+'</div>' : '') +
+        '<button id="submitBtn" class="primary-btn">'+(isCreate ? 'Create group' : 'Join group')+'</button>' +
+        '<p class="hint">'+(isCreate ? 'You\'ll get a random 6-character code to share with friends.' : 'Ask whoever started the group for their code.')+'</p>' +
+      '</div></div>';
+
+    root.querySelectorAll('.seg button').forEach(function(b){
+      b.addEventListener('click', function(){
+        state.authMode = b.getAttribute('data-mode');
+        state.error = '';
+        render();
+      });
+    });
+
+    document.getElementById('submitBtn').addEventListener('click', handleAuthSubmit);
+    document.querySelectorAll('.field input').forEach(function(inp){
+      inp.addEventListener('keydown', function(e){
+        if(e.key === 'Enter') handleAuthSubmit();
+      });
+    });
+  }
+
+  async function handleAuthSubmit(){
+    var usernameInput = document.getElementById('usernameInput');
+    var username = (usernameInput.value || '').trim();
+    if(!username){
+      state.error = 'Enter a name first.';
+      render();
+      return;
+    }
+    try{
+      if(state.authMode === 'create'){
+        var code = genCode();
+        var existing = await getGroup(code);
+        if(existing) code = genCode();
+        await createGroup(code, username);
+        setSession({ username: username, groupCode: code });
+        state.username = username;
+        state.groupCode = code;
+        state.screen = 'app';
+        state.tab = 'compete';
+        state.error = '';
+        render();
+      } else {
+        var codeInput = document.getElementById('codeInput');
+        var code2 = (codeInput.value || '').trim().toUpperCase();
+        if(!code2){
+          state.error = 'Enter a group code.';
+          render();
+          return;
+        }
+        var g = await getGroup(code2);
+        if(!g){
+          state.error = 'No group found with that code.';
+          render();
+          return;
+        }
+        await joinGroup(code2, username);
+        setSession({ username: username, groupCode: code2 });
+        state.username = username;
+        state.groupCode = code2;
+        state.screen = 'app';
+        state.tab = 'compete';
+        state.error = '';
+        render();
+      }
+    }catch(err){
+      state.error = 'Connection issue — check the database rules/config and try again.';
+      render();
+    }
+  }
+
+  async function renderApp(){
+    var group = await getGroup(state.groupCode);
+    if(!group){
+      setSession(null);
+      state.screen = 'auth';
+      render();
+      return;
+    }
+    var membersHtml = group.members.map(function(m){
+      return '<div class="member-chip"><span class="member-dot '+(m===state.username?'you':'')+'"></span>'+esc(m)+(m===state.username?' (you)':'')+'</div>';
+    }).join('');
+
+    root.innerHTML =
+      '<div class="app-shell">' +
+        '<div class="sidebar">' +
+          '<div class="group-badge"><div class="label">GROUP CODE</div><div class="code">'+esc(group.code)+'</div></div>' +
+          '<div class="members"><div class="label">MEMBERS ('+group.members.length+')</div>'+membersHtml+'</div>' +
+          '<div class="nav">' +
+            '<button data-tab="compete" class="'+(state.tab==='compete'?'active':'')+'">📸 Compete</button>' +
+            '<button data-tab="vote" class="'+(state.tab==='vote'?'active':'')+'">🗳️ Vote</button>' +
+          '</div>' +
+          '<button class="leave-btn" id="leaveBtn">Leave group</button>' +
+        '</div>' +
+        '<div class="main" id="mainArea"><div class="loading">Loading today\'s round…</div></div>' +
+      '</div>';
+
+    document.querySelectorAll('.nav button').forEach(function(b){
+      b.addEventListener('click', function(){
+        state.tab = b.getAttribute('data-tab');
+        render();
+      });
+    });
+    document.getElementById('leaveBtn').addEventListener('click', function(){
+      setSession(null);
+      state.username = null;
+      state.groupCode = null;
+      state.screen = 'auth';
+      render();
+    });
+
+    var date = todayStr();
+    var round = await ensureRound(state.groupCode, date);
+    var mainArea = document.getElementById('mainArea');
+    if(!round){
+      mainArea.innerHTML = '<div class="empty-state">Couldn\'t load today\'s round. Try refreshing.</div>';
+      return;
+    }
+
+    if(state.tab === 'compete'){
+      await renderCompete(mainArea, group, round, date);
+    } else {
+      await renderVote(mainArea, group, round, date);
+    }
+  }
+
+  async function renderCompete(mainArea, group, round, date){
+    if(round.resting === state.username){
+      mainArea.innerHTML =
+        '<h2 class="page-title">Today\'s challenge</h2>' +
+        '<p class="page-sub">Odd number of players today — you\'re sitting this round out.</p>' +
+        '<div class="ticket"><div class="resting-card">No opponent for you today. You\'ll be back in the mix for the next round. In the meantime, head to the Vote tab to judge everyone else\'s matchups.</div></div>';
+      return;
+    }
+    var pair = round.pairs.find(function(p){ return p.users.indexOf(state.username) !== -1; });
+    if(!pair){
+      mainArea.innerHTML = '<div class="empty-state">You\'re not in today\'s round yet. Ask a friend to invite you, or check back tomorrow.</div>';
+      return;
+    }
+    var opponent = pair.users.find(function(u){ return u !== state.username; });
+    var mySub = await getSubmission(state.groupCode, date, state.username);
+    var oppSub = await getSubmission(state.groupCode, date, opponent);
+
+    mainArea.innerHTML =
+      '<h2 class="page-title">Today\'s challenge</h2>' +
+      '<p class="page-sub">A fresh prompt lands here every 24 hours.</p>' +
+      '<div class="ticket">' +
+        '<div class="ticket-row">' +
+          '<div class="vs-pill">You vs <b>'+esc(opponent)+'</b></div>' +
+          '<div class="countdown" id="countdown">--:--:--</div>' +
+        '</div>' +
+        '<div class="prompt-text">'+esc(pair.prompt)+'</div>' +
+        '<div id="uploadArea"></div>' +
+      '</div>';
+
+    startCountdown();
+
+    var uploadArea = document.getElementById('uploadArea');
+    if(mySub){
+      uploadArea.innerHTML =
+        '<div class="submitted-wrap">' +
+          '<img class="submitted-img" src="'+mySub.dataUrl+'" />' +
+          '<div class="status-line good">Submitted!</div>' +
+          '<div class="status-line">'+(oppSub ? esc(opponent)+' has submitted too — head to Vote to see it judged.' : 'Waiting on '+esc(opponent)+' to submit theirs.')+'</div>' +
+        '</div>';
+    } else {
+      uploadArea.innerHTML =
+        '<label class="dropzone" id="dropzone">' +
+          '<div class="big">Upload your photo</div>' +
+          'Click to choose a file' +
+          '<input type="file" accept="image/*" id="fileInput" />' +
+        '</label>';
+      document.getElementById('fileInput').addEventListener('change', async function(e){
+        var file = e.target.files[0];
+        if(!file) return;
+        var dz = document.getElementById('dropzone');
+        dz.innerHTML = '<div class="big">Uploading…</div>';
+        try{
+          var dataUrl = await resizeImage(file);
+          await setSubmission(state.groupCode, date, state.username, dataUrl);
+          render();
+        }catch(err){
+          dz.innerHTML = '<div class="big">Something went wrong — try a different image.</div>';
+        }
+      });
+    }
+  }
+
+  var countdownTimer = null;
+  function startCountdown(){
+    if(countdownTimer) clearInterval(countdownTimer);
+    function tick(){
+      var el = document.getElementById('countdown');
+      if(!el){ clearInterval(countdownTimer); return; }
+      var ms = msUntilMidnight();
+      var h = Math.floor(ms / 3600000);
+      var m = Math.floor((ms % 3600000) / 60000);
+      var s = Math.floor((ms % 60000) / 1000);
+      el.textContent = String(h).padStart(2,'0')+':'+String(m).padStart(2,'0')+':'+String(s).padStart(2,'0')+' left';
+    }
+    tick();
+    countdownTimer = setInterval(tick, 1000);
+  }
+
+  async function renderVote(mainArea, group, round, date){
+    mainArea.innerHTML = '<h2 class="page-title">Vote</h2><p class="page-sub">Pick your favorite from each matchup.</p><div class="loading">Loading matchups…</div>';
+
+    var votable = [];
+    for(var i=0;i<round.pairs.length;i++){
+      var pair = round.pairs[i];
+      if(pair.users.indexOf(state.username) !== -1) continue; // can't vote on own matchup
+      var subA = await getSubmission(state.groupCode, date, pair.users[0]);
+      var subB = await getSubmission(state.groupCode, date, pair.users[1]);
+      if(subA && subB){
+        votable.push({pair: pair, subA: subA, subB: subB});
+      }
+    }
+
+    if(votable.length === 0){
+      mainArea.innerHTML = '<h2 class="page-title">Vote</h2><p class="page-sub">Pick your favorite from each matchup.</p>' +
+        '<div class="empty-state">No matchups ready to judge yet. Once two players outside your own matchup have both submitted photos, they\'ll show up here.</div>';
+      return;
+    }
+
+    var myVotes = await getVoteMap(state.groupCode, date, state.username);
+
+    mainArea.innerHTML = '<h2 class="page-title">Vote</h2><p class="page-sub">Pick your favorite from each matchup.</p><div id="matchList"></div>';
+    var matchList = document.getElementById('matchList');
+
+    for(var j=0;j<votable.length;j++){
+      (function(item){
+        var pair = item.pair;
+        var voted = myVotes[pair.id];
+        var card = document.createElement('div');
+        card.className = 'matchup';
+        card.innerHTML =
+          '<div class="matchup-prompt">'+esc(pair.prompt)+'</div>' +
+          '<div class="diptych">' +
+            '<div class="half" data-user="'+esc(pair.users[0])+'"><img src="'+item.subA.dataUrl+'"/><div class="name-tag">'+esc(pair.users[0])+'</div></div>' +
+            '<div class="vs-badge">VS</div>' +
+            '<div class="half" data-user="'+esc(pair.users[1])+'"><img src="'+item.subB.dataUrl+'"/><div class="name-tag">'+esc(pair.users[1])+'</div></div>' +
+          '</div>' +
+          '<div class="tally-row" id="tally-'+pair.id+'"></div>';
+        matchList.appendChild(card);
+
+        function markVoted(choice){
+          card.querySelectorAll('.half').forEach(function(h){
+            var isChoice = h.getAttribute('data-user') === choice;
+            h.classList.toggle('voted', isChoice);
+            var existingCheck = h.querySelector('.check');
+            if(isChoice && !existingCheck){
+              var chk = document.createElement('div');
+              chk.className = 'check';
+              chk.textContent = '✓';
+              h.appendChild(chk);
+            } else if(!isChoice && existingCheck){
+              existingCheck.remove();
+            }
+          });
+        }
+        if(voted) markVoted(voted);
+
+        async function refreshTally(){
+          var counts = await tallyPair(state.groupCode, date, pair);
+          var total = pair.users.reduce(function(s,u){ return s + (counts[u]||0); }, 0);
+          var tallyEl = document.getElementById('tally-'+pair.id);
+          if(!tallyEl) return;
+          tallyEl.innerHTML = pair.users.map(function(u){
+            var c = counts[u] || 0;
+            var pct = total > 0 ? Math.round((c/total)*100) : 0;
+            return '<div class="tally-bar"><div class="bar-track"><div class="bar-fill" style="width:'+pct+'%"></div></div><div class="bar-label">'+esc(u)+' · '+c+' vote'+(c===1?'':'s')+'</div></div>';
+          }).join('');
+        }
+        if(voted) refreshTally();
+
+        card.querySelectorAll('.half').forEach(function(h){
+          h.addEventListener('click', async function(){
+            var choice = h.getAttribute('data-user');
+            markVoted(choice);
+            await castVote(state.groupCode, date, state.username, pair.id, choice);
+            refreshTally();
+          });
+        });
+      })(votable[j]);
+    }
+  }
+
+  // ---------- boot ----------
+  async function boot(){
+    if(!isConfigured()){
+      state.screen = 'setup';
+      render();
+      return;
+    }
+    try{
+      firebase.initializeApp(firebaseConfig);
+      db = firebase.database();
+    }catch(e){
+      state.screen = 'setup';
+      render();
+      return;
+    }
+
+    var session = getSession();
+    if(session && session.username && session.groupCode){
+      try{
+        var g = await getGroup(session.groupCode);
+        if(g){
+          state.username = session.username;
+          state.groupCode = session.groupCode;
+          state.screen = 'app';
+          render();
+          return;
+        }
+      }catch(e){}
+    }
+    state.screen = 'auth';
+    render();
+  }
+
+  boot();
+})();
+</script>
+</body>
+</html>
