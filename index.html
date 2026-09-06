@@ -19,6 +19,43 @@
     --text:#F5EFE6;
     --text-muted:#B9A9C4;
     --border: rgba(245,239,230,0.14);
+    --btn-ink:#241708;
+  }
+  html[data-theme="light"]{
+    --bg:#FBF7F2;
+    --surface:#FFFFFF;
+    --surface-2:#F1E9DC;
+    --accent:#D97B29;
+    --accent-2:#C63D3D;
+    --text:#231607;
+    --text-muted:#7C6B5A;
+    --border: rgba(35,22,7,0.14);
+    --btn-ink:#FFFFFF;
+  }
+  html[data-theme="ocean"]{
+    --bg:#0B1E2D;
+    --surface:#12293D;
+    --surface-2:#1B3A52;
+    --accent:#5FD0C6;
+    --accent-2:#4C8FE0;
+    --text:#EAF6F6;
+    --text-muted:#8FB4BE;
+    --border: rgba(234,246,246,0.16);
+    --btn-ink:#06222B;
+  }
+  html[data-theme="sunset"]{
+    --bg:#2B1420;
+    --surface:#3A1C2C;
+    --surface-2:#4A2436;
+    --accent:#FF9F5B;
+    --accent-2:#FF5C8A;
+    --text:#FFF3EC;
+    --text-muted:#D9A6B8;
+    --border: rgba(255,243,236,0.16);
+    --btn-ink:#2B1420;
+  }
+  body, .sidebar, .surface, .auth-card, .setup-card, .ticket, .matchup{
+    transition: background-color .2s ease, border-color .2s ease, color .2s ease;
   }
   *{box-sizing:border-box;}
   html,body{margin:0;padding:0;}
@@ -115,7 +152,7 @@
   }
   .seg button.active{
     background:var(--accent);
-    color:#241708;
+    color:var(--btn-ink);
   }
   label{
     display:block;
@@ -140,7 +177,7 @@
   .primary-btn{
     width:100%;
     background:var(--accent);
-    color:#241708;
+    color:var(--btn-ink);
     padding:13px 0;
     border-radius:10px;
     font-size:15px;
@@ -185,16 +222,43 @@
   .member-chip{
     display:flex;
     align-items:center;
+    justify-content:space-between;
     gap:8px;
     padding:6px 0;
     font-size:14px;
   }
-  .member-dot{
-    width:8px;height:8px;border-radius:50%;
+  .member-chip .member-name{ display:flex; align-items:center; gap:8px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .member-chip .win-count{ color:var(--text-muted); font-size:12.5px; font-variant-numeric:tabular-nums; flex-shrink:0; }
+  .member-chip.champ .member-name{ color:var(--accent); font-weight:700; }
+  .member-chip.champ .win-count{ color:var(--accent); font-weight:700; }
+  .avatar-wrap{
+    position:relative;
+    width:20px; height:20px;
+    flex-shrink:0;
+    display:inline-flex;
+  }
+  .avatar-img{
+    width:20px; height:20px;
+    border-radius:50%;
+    object-fit:cover;
+    display:block;
+  }
+  .avatar-fallback{
+    width:20px; height:20px;
+    border-radius:50%;
     background:var(--accent-2);
     flex-shrink:0;
+    display:block;
   }
-  .member-dot.you{ background:var(--accent); }
+  .avatar-fallback.you{ background:var(--accent); }
+  .crown-badge{
+    position:absolute;
+    top:-10px; left:50%;
+    transform:translateX(-50%);
+    font-size:13px;
+    line-height:1;
+    filter:drop-shadow(0 1px 1px rgba(0,0,0,0.4));
+  }
   .nav{ display:flex; flex-direction:column; gap:6px; margin-bottom:auto; }
   .nav button{
     text-align:left;
@@ -213,11 +277,19 @@
     color:var(--text);
   }
   .nav button:hover{ color:var(--text); }
-  .leave-btn{
+  .settings-btn{
     background:transparent;
     color:var(--text-muted);
     font-size:13px;
     padding:8px 0;
+    text-align:left;
+  }
+  .settings-btn:hover{ color:var(--text); }
+  .leave-btn{
+    background:transparent;
+    color:var(--text-muted);
+    font-size:13px;
+    padding:8px 0 4px;
     text-align:left;
   }
   .leave-btn:hover{ color:var(--accent-2); }
@@ -318,6 +390,55 @@
     border-radius:18px;
     padding:22px;
     margin-bottom:22px;
+    transition:padding .15s ease;
+  }
+  .matchup.collapsed{
+    padding:14px 20px;
+  }
+  .matchup-header{
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap:14px;
+    margin-bottom:16px;
+  }
+  .matchup.collapsed .matchup-header{ display:none; }
+  .matchup.collapsed .full-body{ display:none; }
+  .collapse-btn{
+    background:var(--surface-2);
+    color:var(--text-muted);
+    width:28px; height:28px;
+    border-radius:50%;
+    flex-shrink:0;
+    font-size:15px;
+    line-height:1;
+  }
+  .collapse-btn:hover{ color:var(--text); }
+  .collapsed-pill{
+    display:none;
+    align-items:center;
+    gap:14px;
+    font-size:14px;
+    color:var(--text-muted);
+    cursor:pointer;
+  }
+  .matchup.collapsed .collapsed-pill{ display:flex; }
+  .collapsed-pill .cp-prompt{
+    color:var(--text);
+    font-weight:600;
+    font-family:'Fraunces', serif;
+    flex:1;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+  }
+  .collapsed-pill .cp-users{ flex-shrink:0; }
+  .collapsed-pill .cp-comments{
+    flex-shrink:0;
+    background:var(--surface-2);
+    padding:4px 10px;
+    border-radius:12px;
+    font-size:12.5px;
   }
   .matchup-prompt{
     font-size:18px;
@@ -360,7 +481,7 @@
     width:26px;height:26px;
     border-radius:50%;
     background:var(--accent-2);
-    color:#241708;
+    color:var(--btn-ink);
     display:flex;
     align-items:center;
     justify-content:center;
@@ -401,6 +522,47 @@
     height:100%;
   }
   .tally-bar .bar-label{ font-size:12.5px; color:var(--text-muted); }
+
+  .comments{
+    margin-top:20px;
+    border-top:1px solid var(--border);
+    padding-top:16px;
+  }
+  .comment{
+    display:flex;
+    gap:7px;
+    margin-bottom:9px;
+    font-size:13.5px;
+    line-height:1.45;
+  }
+  .comment .c-name{ font-weight:700; color:var(--accent-2); flex-shrink:0; }
+  .comment .c-text{ color:var(--text); word-break:break-word; }
+  .no-comments{ color:var(--text-muted); font-size:13px; font-style:italic; margin-bottom:10px; }
+  .comment-form{
+    display:flex;
+    gap:8px;
+    margin-top:12px;
+  }
+  .comment-form input{
+    flex:1;
+    background:#1B1420;
+    border:1px solid var(--border);
+    color:var(--text);
+    padding:9px 14px;
+    border-radius:20px;
+    font-size:13.5px;
+    outline:none;
+  }
+  .comment-form input:focus{ border-color:var(--accent); }
+  .comment-form button{
+    background:var(--accent);
+    color:var(--btn-ink);
+    padding:9px 18px;
+    border-radius:20px;
+    font-size:13px;
+    font-weight:700;
+    flex-shrink:0;
+  }
   .empty-state{
     color:var(--text-muted);
     font-size:15px;
@@ -409,6 +571,81 @@
     max-width:420px;
   }
   .loading{ color:var(--text-muted); font-size:14px; padding:20px 0; }
+
+  .matchup.past{ opacity:0.94; }
+  .diptych.readonly .half{ cursor:default; }
+  .diptych.readonly .half:hover img{ opacity:0.92; }
+  .date-tag{
+    display:inline-block;
+    background:var(--surface-2);
+    color:var(--text-muted);
+    font-size:11px;
+    font-weight:700;
+    padding:2px 8px;
+    border-radius:8px;
+    margin-right:8px;
+    vertical-align:middle;
+    text-transform:uppercase;
+    letter-spacing:0.04em;
+  }
+  .today-divider{
+    text-align:center;
+    color:var(--text-muted);
+    font-size:12px;
+    font-weight:700;
+    text-transform:uppercase;
+    letter-spacing:0.08em;
+    margin:28px 0 18px;
+    position:relative;
+  }
+  .today-divider:before, .today-divider:after{
+    content:"";
+    position:absolute;
+    top:50%;
+    width:35%;
+    height:1px;
+    background:var(--border);
+  }
+  .today-divider:before{ left:0; }
+  .today-divider:after{ right:0; }
+
+  /* ---------- Settings page ---------- */
+  .settings-section{
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:16px;
+    padding:24px;
+    margin-bottom:20px;
+    max-width:520px;
+  }
+  .settings-section h3{ font-size:16px; margin:0 0 14px; }
+  .avatar-settings-row{ display:flex; align-items:center; gap:18px; }
+  .avatar-preview{ width:56px; height:56px; border-radius:50%; overflow:hidden; flex-shrink:0; background:var(--surface-2); display:block; }
+  .avatar-preview img{ width:100%; height:100%; object-fit:cover; display:block; }
+  .dropzone.small{
+    flex:1;
+    padding:16px;
+    font-size:13.5px;
+  }
+  .dropzone.small .big{ font-size:14px; }
+  .theme-row{ display:flex; flex-wrap:wrap; gap:10px; }
+  .theme-swatch{
+    background:var(--surface-2);
+    color:var(--text-muted);
+    padding:9px 14px 9px 10px;
+    border-radius:10px;
+    font-size:13.5px;
+    font-weight:600;
+    border:1.5px solid transparent;
+    display:flex;
+    align-items:center;
+  }
+  .theme-swatch.active{ border-color:var(--accent); color:var(--text); }
+  .swatch-dot{
+    width:10px;height:10px;border-radius:50%;
+    display:inline-block;
+    margin-right:8px;
+  }
 
   @media (max-width: 760px){
     .app-shell{ flex-direction:column; }
@@ -458,28 +695,39 @@
     "Something you use every day",
     "A shadow you like",
     "Something red",
-    "Your favorite mug",
-    "A tiny detail nobody notices",
+    "Your favorite cup or mug",
+    "Your least favorite cup or mug",
+    "A tiny detail you saw today that no one else noticed",
     "Something you'd never usually photograph",
+    "Something you haven't photographed for a competition yet",
     "The last thing you touched",
-    "A reflection",
+    "Something shiny",
     "Something that smells good",
     "Your workspace, mid-task",
-    "Something older than you",
-    "A pattern or texture",
+    "A cool pattern or texture",
     "Something you're proud of",
     "The sky, right now",
     "Your go-to snack",
-    "Something perfectly out of place",
-    "A close-up of your shoes",
+    "A drawing of a dog or cat",
+    "A drawing of a cool car",
     "Something you own but rarely use",
     "A door you walk through often",
-    "Something handmade",
+    "Your favourite sandwich",
     "The most colorful thing nearby"
   ];
 
   var root = document.getElementById('root');
   var db = null;
+
+  // ---------- TEST MODE: simulated day offset ----------
+  // Lets you press ] / [ to jump the app's notion of "today" forward/back a day,
+  // so you can run through several days of rounds quickly while testing.
+  // This is local to your browser only — it doesn't change the date for anyone else.
+  var dayOffset = 0;
+  try{ dayOffset = parseInt(localStorage.getItem('snapduel_dayOffset') || '0', 10) || 0; }catch(e){}
+  function persistDayOffset(){
+    try{ localStorage.setItem('snapduel_dayOffset', String(dayOffset)); }catch(e){}
+  }
 
   var state = {
     screen: 'loading', // loading | setup | auth | app
@@ -497,10 +745,12 @@
 
   function todayStr(){
     var d = new Date();
+    d.setDate(d.getDate() + dayOffset);
     return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
   }
   function msUntilMidnight(){
     var now = new Date();
+    now.setDate(now.getDate() + dayOffset);
     var next = new Date(now.getFullYear(), now.getMonth(), now.getDate()+1, 0,0,0,0);
     return next - now;
   }
@@ -523,6 +773,63 @@
     d.textContent = s == null ? '' : s;
     return d.innerHTML;
   }
+  function shiftDateStr(dateStr, delta){
+    var parts = dateStr.split('-').map(Number);
+    var d = new Date(parts[0], parts[1]-1, parts[2]);
+    d.setDate(d.getDate() + delta);
+    return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+  }
+  function formatDateLabel(dateStr){
+    var parts = dateStr.split('-').map(Number);
+    var d = new Date(parts[0], parts[1]-1, parts[2]);
+    return d.toLocaleDateString(undefined, { month:'short', day:'numeric' });
+  }
+
+  // ---------- color theme ----------
+  var THEMES = [
+    { id:'dark',   label:'Dark',   dot:'#FFC145' },
+    { id:'light',  label:'Bright', dot:'#D97B29' },
+    { id:'ocean',  label:'Ocean',  dot:'#5FD0C6' },
+    { id:'sunset', label:'Sunset', dot:'#FF9F5B' }
+  ];
+  function getTheme(){
+    try{ return localStorage.getItem('snapduel_theme') || 'dark'; }catch(e){ return 'dark'; }
+  }
+  function applyTheme(theme){
+    try{ localStorage.setItem('snapduel_theme', theme); }catch(e){}
+    document.documentElement.setAttribute('data-theme', theme);
+  }
+  applyTheme(getTheme()); // apply immediately so even the setup/auth screens are themed
+
+  // ---------- test-mode day-skip badge ----------
+  function ensureDevBadge(){
+    if(document.getElementById('devBadge')) return;
+    var badge = document.createElement('div');
+    badge.id = 'devBadge';
+    badge.style.cssText = 'position:fixed;bottom:14px;right:14px;background:#26192B;border:1px solid rgba(245,239,230,0.18);color:#B9A9C4;font-family:"Public Sans",sans-serif;font-size:12px;padding:9px 13px;border-radius:10px;z-index:9999;line-height:1.6;box-shadow:0 6px 18px rgba(0,0,0,0.35);';
+    document.body.appendChild(badge);
+    updateDevBadge();
+  }
+  function updateDevBadge(){
+    var badge = document.getElementById('devBadge');
+    if(!badge) return;
+    badge.innerHTML = '<b style="color:#FFC145;">TEST MODE</b> — simulated date: <b>'+todayStr()+'</b><br>Press <b>]</b> to skip a day forward, <b>[</b> to go back';
+  }
+  document.addEventListener('keydown', function(e){
+    var tag = (e.target && e.target.tagName || '').toLowerCase();
+    if(tag === 'input' || tag === 'textarea') return; // don't hijack normal typing
+    if(e.key === ']'){
+      dayOffset++;
+      persistDayOffset();
+      updateDevBadge();
+      render();
+    } else if(e.key === '['){
+      dayOffset = Math.max(0, dayOffset - 1);
+      persistDayOffset();
+      updateDevBadge();
+      render();
+    }
+  });
 
   // ---------- session (local to this browser) ----------
   function getSession(){
@@ -546,7 +853,9 @@
     return {
       code: code,
       createdAt: val.createdAt,
-      members: val.members ? Object.keys(val.members) : []
+      members: val.members ? Object.keys(val.members) : [],
+      wins: val.wins || {},
+      avatars: val.avatars || {}
     };
   }
   async function createGroup(code, username){
@@ -584,6 +893,222 @@
       return current === null ? round : undefined;
     });
     return result.snapshot.val();
+  }
+
+  // Re-pairs anyone left over (a resting member, or a brand-new joiner) as soon as
+  // the group's membership changes, so a newcomer gets matched instantly.
+  async function reconcileRound(code, date, members){
+    var ref = groupRef(code).child('rounds').child(date);
+    var result = await ref.transaction(function(round){
+      if(!round) return round;
+      var assigned = {};
+      (round.pairs || []).forEach(function(p){ p.users.forEach(function(u){ assigned[u]=true; }); });
+      var unassigned = members.filter(function(m){ return !assigned[m] && m !== round.resting; });
+      if(round.resting && members.indexOf(round.resting) !== -1){
+        unassigned = [round.resting].concat(unassigned);
+      }
+      var prompts = shuffle(PROMPTS);
+      var pi = 0;
+      var nextId = (round.pairs || []).length;
+      round.pairs = round.pairs || [];
+      while(unassigned.length >= 2){
+        var a = unassigned.shift();
+        var b = unassigned.shift();
+        round.pairs.push({ id: 'p'+nextId, users: [a, b], prompt: prompts[pi % prompts.length] });
+        nextId++; pi++;
+      }
+      round.resting = unassigned.length === 1 ? unassigned[0] : null;
+      return round;
+    });
+    return result.snapshot.val();
+  }
+
+  // ---------- leaderboard: tally daily winners once a round's day has passed ----------
+  async function finalizeRound(code, date, round){
+    // Claim finalization atomically so only one client does the counting.
+    var claimRef = groupRef(code).child('rounds').child(date).child('finalized');
+    var claim = await claimRef.transaction(function(cur){ return cur ? undefined : true; });
+    if(!claim.committed) return;
+    var votesSnap = await groupRef(code).child('votes').child(date).once('value');
+    var allVotes = votesSnap.val() || {};
+    var winners = [];
+    (round.pairs || []).forEach(function(pair){
+      var counts = {}; pair.users.forEach(function(u){ counts[u]=0; });
+      Object.keys(allVotes).forEach(function(voter){
+        var choice = allVotes[voter] ? allVotes[voter][pair.id] : null;
+        if(choice && counts.hasOwnProperty(choice)) counts[choice]++;
+      });
+      var a = pair.users[0], b = pair.users[1];
+      if(counts[a] > counts[b]) winners.push(a);
+      else if(counts[b] > counts[a]) winners.push(b);
+      // ties: nobody gets a win for that matchup
+    });
+    for(var i=0;i<winners.length;i++){
+      await groupRef(code).child('wins').child(winners[i]).transaction(function(cur){ return (cur||0) + 1; });
+    }
+  }
+  async function finalizePastRounds(code, today){
+    var snap = await groupRef(code).child('rounds').once('value');
+    var rounds = snap.val() || {};
+    var dates = Object.keys(rounds).filter(function(d){ return d < today && rounds[d] && !rounds[d].finalized; });
+    for(var i=0;i<dates.length;i++){
+      try{ await finalizeRound(code, dates[i], rounds[dates[i]]); }catch(e){}
+    }
+  }
+
+  // ---------- comments on a matchup ----------
+  async function getComments(code, date, pairId){
+    var snap = await groupRef(code).child('comments').child(date).child(pairId).once('value');
+    var val = snap.val() || {};
+    return Object.keys(val).map(function(id){
+      var c = val[id];
+      return { id: id, username: c.username, text: c.text, ts: c.ts };
+    }).sort(function(a,b){ return a.ts - b.ts; });
+  }
+  async function addComment(code, date, pairId, username, text){
+    var ref = groupRef(code).child('comments').child(date).child(pairId).push();
+    await ref.set({ username: username, text: text, ts: Date.now() });
+  }
+
+  // ---------- weekly cleanup: drop rounds/photos/votes/comments older than 7 days ----------
+  // (win counts and the leaderboard are stored separately, so history is safe to prune.)
+  async function cleanupOldData(code, today){
+    var claimRef = groupRef(code).child('cleanupDone').child(today);
+    var claim = await claimRef.transaction(function(cur){ return cur ? undefined : true; });
+    if(!claim.committed) return; // already ran cleanup today
+    var cutoff = shiftDateStr(today, -7);
+    var snap = await groupRef(code).child('rounds').once('value');
+    var rounds = snap.val() || {};
+    var oldDates = Object.keys(rounds).filter(function(d){ return d < cutoff; });
+    for(var i=0;i<oldDates.length;i++){
+      var d = oldDates[i];
+      await groupRef(code).child('rounds').child(d).remove();
+      await groupRef(code).child('submissions').child(d).remove();
+      await groupRef(code).child('votes').child(d).remove();
+      await groupRef(code).child('comments').child(d).remove();
+    }
+  }
+
+  // ---------- settings: rename & avatar ----------
+  // Renames a member everywhere they're referenced (membership, wins, past rounds,
+  // submissions, votes, and comment authorship) in one atomic pass.
+  async function renameUser(code, oldName, newName){
+    if(oldName === newName) return { ok:true };
+    var membersSnap = await groupRef(code).child('members').once('value');
+    var existingMembers = membersSnap.val() || {};
+    var takenNow = Object.keys(existingMembers).some(function(k){ return k.toLowerCase()===newName.toLowerCase() && k!==oldName; });
+    if(takenNow) return { ok:false, reason:'taken' };
+
+    var result = await groupRef(code).transaction(function(g){
+      if(!g) return g;
+      var members = g.members || {};
+      var conflict = Object.keys(members).some(function(k){ return k.toLowerCase()===newName.toLowerCase() && k!==oldName; });
+      if(conflict) return; // abort transaction
+      if(members[oldName] !== undefined){ delete members[oldName]; members[newName] = true; }
+      g.members = members;
+
+      if(g.wins && g.wins[oldName] !== undefined){
+        g.wins[newName] = (g.wins[newName]||0) + g.wins[oldName];
+        delete g.wins[oldName];
+      }
+      if(g.avatars && g.avatars[oldName] !== undefined){
+        g.avatars[newName] = g.avatars[oldName];
+        delete g.avatars[oldName];
+      }
+      if(g.rounds){
+        Object.keys(g.rounds).forEach(function(d){
+          var r = g.rounds[d];
+          if(!r) return;
+          if(r.resting === oldName) r.resting = newName;
+          (r.pairs || []).forEach(function(p){
+            p.users = p.users.map(function(u){ return u === oldName ? newName : u; });
+          });
+        });
+      }
+      if(g.submissions){
+        Object.keys(g.submissions).forEach(function(d){
+          var subs = g.submissions[d];
+          if(subs && subs[oldName] !== undefined){
+            subs[newName] = subs[oldName];
+            delete subs[oldName];
+          }
+        });
+      }
+      if(g.votes){
+        Object.keys(g.votes).forEach(function(d){
+          var votesForDate = g.votes[d];
+          if(!votesForDate) return;
+          if(votesForDate[oldName] !== undefined){
+            votesForDate[newName] = votesForDate[oldName];
+            delete votesForDate[oldName];
+          }
+          Object.keys(votesForDate).forEach(function(voter){
+            var map = votesForDate[voter];
+            if(!map) return;
+            Object.keys(map).forEach(function(pid){
+              if(map[pid] === oldName) map[pid] = newName;
+            });
+          });
+        });
+      }
+      if(g.comments){
+        Object.keys(g.comments).forEach(function(d){
+          var byPair = g.comments[d];
+          if(!byPair) return;
+          Object.keys(byPair).forEach(function(pid){
+            var byId = byPair[pid];
+            if(!byId) return;
+            Object.keys(byId).forEach(function(cid){
+              if(byId[cid] && byId[cid].username === oldName) byId[cid].username = newName;
+            });
+          });
+        });
+      }
+      return g;
+    });
+    if(!result.committed) return { ok:false, reason:'taken' };
+    return { ok:true };
+  }
+
+  async function setAvatar(code, username, dataUrl){
+    await groupRef(code).child('avatars').child(username).set(dataUrl);
+  }
+
+  function resizeAvatar(file){
+    return new Promise(function(resolve, reject){
+      var reader = new FileReader();
+      reader.onload = function(e){
+        var img = new Image();
+        img.onload = function(){
+          var side = Math.min(img.width, img.height);
+          var sx = (img.width - side) / 2, sy = (img.height - side) / 2;
+          var canvas = document.createElement('canvas');
+          canvas.width = 160; canvas.height = 160;
+          var ctx = canvas.getContext('2d');
+          ctx.drawImage(img, sx, sy, side, side, 0, 0, 160, 160);
+          resolve(canvas.toDataURL('image/jpeg', 0.85));
+        };
+        img.onerror = reject;
+        img.src = e.target.result;
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+
+  // ---------- realtime sync ----------
+  // Keeps everyone's screen in sync automatically: new members, new photos, and
+  // new votes all re-render the app without anyone needing to refresh.
+  var groupListenerRef = null;
+  function attachGroupListener(code){
+    detachGroupListener();
+    groupListenerRef = groupRef(code);
+    groupListenerRef.on('value', function(){
+      if(state.screen === 'app' && state.groupCode === code) render();
+    });
+  }
+  function detachGroupListener(){
+    if(groupListenerRef){ groupListenerRef.off(); groupListenerRef = null; }
   }
 
   async function getSubmission(code, date, username){
@@ -725,6 +1250,7 @@
         setSession({ username: username, groupCode: code });
         state.username = username;
         state.groupCode = code;
+        attachGroupListener(code);
         state.screen = 'app';
         state.tab = 'compete';
         state.error = '';
@@ -747,6 +1273,7 @@
         setSession({ username: username, groupCode: code2 });
         state.username = username;
         state.groupCode = code2;
+        attachGroupListener(code2);
         state.screen = 'app';
         state.tab = 'compete';
         state.error = '';
@@ -766,22 +1293,41 @@
       render();
       return;
     }
-    var membersHtml = group.members.map(function(m){
-      return '<div class="member-chip"><span class="member-dot '+(m===state.username?'you':'')+'"></span>'+esc(m)+(m===state.username?' (you)':'')+'</div>';
+    var date = todayStr();
+    try{
+      await finalizePastRounds(state.groupCode, date);
+      await cleanupOldData(state.groupCode, date);
+      group = await getGroup(state.groupCode); // pick up any newly-tallied wins / cleanup
+    }catch(e){}
+
+    var ranked = group.members.slice().sort(function(a,b){ return (group.wins[b]||0) - (group.wins[a]||0); });
+    var membersHtml = ranked.map(function(m, idx){
+      var w = group.wins[m] || 0;
+      var isTop = idx === 0 && w > 0;
+      var avatarUrl = group.avatars && group.avatars[m];
+      var avatarInner = avatarUrl
+        ? '<img class="avatar-img" src="'+avatarUrl+'"/>'
+        : '<span class="avatar-fallback'+(m===state.username?' you':'')+'"></span>';
+      var avatarHtml = '<span class="avatar-wrap">'+avatarInner+(isTop?'<span class="crown-badge">👑</span>':'')+'</span>';
+      return '<div class="member-chip'+(isTop?' champ':'')+'">' +
+        '<span class="member-name">'+avatarHtml+esc(m)+(m===state.username?' (you)':'')+'</span>' +
+        '<span class="win-count">'+w+'</span>' +
+      '</div>';
     }).join('');
 
     root.innerHTML =
       '<div class="app-shell">' +
         '<div class="sidebar">' +
           '<div class="group-badge"><div class="label">GROUP CODE</div><div class="code">'+esc(group.code)+'</div></div>' +
-          '<div class="members"><div class="label">MEMBERS ('+group.members.length+')</div>'+membersHtml+'</div>' +
+          '<div class="members"><div class="label">LEADERBOARD ('+group.members.length+')</div>'+membersHtml+'</div>' +
           '<div class="nav">' +
             '<button data-tab="compete" class="'+(state.tab==='compete'?'active':'')+'">📸 Compete</button>' +
             '<button data-tab="vote" class="'+(state.tab==='vote'?'active':'')+'">🗳️ Vote</button>' +
           '</div>' +
+          '<button class="settings-btn" id="settingsBtn">⚙️ Settings</button>' +
           '<button class="leave-btn" id="leaveBtn">Leave group</button>' +
         '</div>' +
-        '<div class="main" id="mainArea"><div class="loading">Loading today\'s round…</div></div>' +
+        '<div class="main" id="mainArea"><div class="loading">Loading…</div></div>' +
       '</div>';
 
     document.querySelectorAll('.nav button').forEach(function(b){
@@ -790,7 +1336,12 @@
         render();
       });
     });
+    document.getElementById('settingsBtn').addEventListener('click', function(){
+      state.tab = 'settings';
+      render();
+    });
     document.getElementById('leaveBtn').addEventListener('click', function(){
+      detachGroupListener();
       setSession(null);
       state.username = null;
       state.groupCode = null;
@@ -798,9 +1349,21 @@
       render();
     });
 
-    var date = todayStr();
-    var round = await ensureRound(state.groupCode, date);
     var mainArea = document.getElementById('mainArea');
+
+    if(state.tab === 'settings'){
+      await renderSettings(mainArea, group);
+      return;
+    }
+
+    var round;
+    try{
+      round = await ensureRound(state.groupCode, date);
+      if(round) round = await reconcileRound(state.groupCode, date, group.members);
+    }catch(err){
+      mainArea.innerHTML = '<div class="empty-state">Couldn\'t load today\'s round.<br><br>Error: '+esc(err && err.message ? err.message : String(err))+'<br><br>This is usually a Firebase Realtime Database rules problem — open the Rules tab in your Firebase console and make sure read/write access is allowed.</div>';
+      return;
+    }
     if(!round){
       mainArea.innerHTML = '<div class="empty-state">Couldn\'t load today\'s round. Try refreshing.</div>';
       return;
@@ -811,6 +1374,74 @@
     } else {
       await renderVote(mainArea, group, round, date);
     }
+  }
+
+  async function renderSettings(mainArea, group){
+    var myAvatar = group.avatars && group.avatars[state.username];
+    mainArea.innerHTML =
+      '<h2 class="page-title">Settings</h2>' +
+      '<p class="page-sub">Personalize your name, photo, and the site\'s look.</p>' +
+      '<div class="settings-section">' +
+        '<h3>Your name</h3>' +
+        '<div class="field"><input id="nameInput" type="text" maxlength="20" value="'+esc(state.username)+'" /></div>' +
+        (state.settingsError ? '<div class="error-msg">'+esc(state.settingsError)+'</div>' : '') +
+        '<button class="primary-btn" id="saveNameBtn" style="max-width:200px;">Save name</button>' +
+      '</div>' +
+      '<div class="settings-section">' +
+        '<h3>Profile picture</h3>' +
+        '<div class="avatar-settings-row">' +
+          '<span class="avatar-preview">'+(myAvatar ? '<img src="'+myAvatar+'"/>' : '<span class="avatar-fallback you" style="width:56px;height:56px;"></span>')+'</span>' +
+          '<label class="dropzone small" id="avatarDrop">' +
+            '<div class="big">Upload a photo</div>Click to choose an image — it\'ll be cropped into a circle' +
+            '<input type="file" accept="image/*" id="avatarInput" />' +
+          '</label>' +
+        '</div>' +
+      '</div>' +
+      '<div class="settings-section">' +
+        '<h3>Color theme</h3>' +
+        '<div class="theme-row">' +
+          THEMES.map(function(t){
+            return '<button class="theme-swatch'+(getTheme()===t.id?' active':'')+'" data-theme="'+t.id+'"><span class="swatch-dot" style="background:'+t.dot+'"></span>'+t.label+'</button>';
+          }).join('') +
+        '</div>' +
+      '</div>';
+
+    document.getElementById('saveNameBtn').addEventListener('click', async function(){
+      var newName = document.getElementById('nameInput').value.trim();
+      if(!newName){ state.settingsError = 'Enter a name.'; render(); return; }
+      if(newName === state.username){ return; }
+      var res = await renameUser(state.groupCode, state.username, newName);
+      if(!res.ok){
+        state.settingsError = 'That name is already taken in this group.';
+        render();
+        return;
+      }
+      state.username = newName;
+      state.settingsError = '';
+      setSession({ username: newName, groupCode: state.groupCode });
+      render();
+    });
+
+    document.getElementById('avatarInput').addEventListener('change', async function(e){
+      var file = e.target.files[0];
+      if(!file) return;
+      var drop = document.getElementById('avatarDrop');
+      drop.innerHTML = '<div class="big">Uploading…</div>';
+      try{
+        var dataUrl = await resizeAvatar(file);
+        await setAvatar(state.groupCode, state.username, dataUrl);
+        render();
+      }catch(err){
+        drop.innerHTML = '<div class="big">Something went wrong — try a different image.</div>';
+      }
+    });
+
+    document.querySelectorAll('.theme-swatch').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        applyTheme(btn.getAttribute('data-theme'));
+        render();
+      });
+    });
   }
 
   async function renderCompete(mainArea, group, round, date){
@@ -891,6 +1522,9 @@
     countdownTimer = setInterval(tick, 1000);
   }
 
+  var collapsedPairs = {};   // pairId -> true/false, kept in memory only (per-browser UI state)
+  var commentDrafts = {};    // pairId -> in-progress, unsent comment text
+
   async function renderVote(mainArea, group, round, date){
     mainArea.innerHTML = '<h2 class="page-title">Vote</h2><p class="page-sub">Pick your favorite from each matchup.</p><div class="loading">Loading matchups…</div>';
 
@@ -901,7 +1535,8 @@
       var subA = await getSubmission(state.groupCode, date, pair.users[0]);
       var subB = await getSubmission(state.groupCode, date, pair.users[1]);
       if(subA && subB){
-        votable.push({pair: pair, subA: subA, subB: subB});
+        var comments = await getComments(state.groupCode, date, pair.id);
+        votable.push({pair: pair, subA: subA, subB: subB, comments: comments});
       }
     }
 
@@ -913,24 +1548,60 @@
 
     var myVotes = await getVoteMap(state.groupCode, date, state.username);
 
-    mainArea.innerHTML = '<h2 class="page-title">Vote</h2><p class="page-sub">Pick your favorite from each matchup.</p><div id="matchList"></div>';
+    mainArea.innerHTML = '<h2 class="page-title">Vote</h2><p class="page-sub">Pick your favorite from each matchup. Click a card\'s header to collapse it.</p><div id="matchList"></div>';
     var matchList = document.getElementById('matchList');
 
     for(var j=0;j<votable.length;j++){
       (function(item){
         var pair = item.pair;
         var voted = myVotes[pair.id];
+        var isCollapsed = !!collapsedPairs[pair.id];
         var card = document.createElement('div');
-        card.className = 'matchup';
+        card.className = 'matchup' + (isCollapsed ? ' collapsed' : '');
+        card.setAttribute('data-pair', pair.id);
+
+        var commentsHtml = item.comments.length ? item.comments.map(function(c){
+          return '<div class="comment"><span class="c-name">'+esc(c.username)+'</span><span class="c-text">'+esc(c.text)+'</span></div>';
+        }).join('') : '<div class="no-comments">No comments yet.</div>';
+
         card.innerHTML =
-          '<div class="matchup-prompt">'+esc(pair.prompt)+'</div>' +
-          '<div class="diptych">' +
-            '<div class="half" data-user="'+esc(pair.users[0])+'"><img src="'+item.subA.dataUrl+'"/><div class="name-tag">'+esc(pair.users[0])+'</div></div>' +
-            '<div class="vs-badge">VS</div>' +
-            '<div class="half" data-user="'+esc(pair.users[1])+'"><img src="'+item.subB.dataUrl+'"/><div class="name-tag">'+esc(pair.users[1])+'</div></div>' +
+          '<div class="matchup-header">' +
+            '<div class="matchup-prompt">'+esc(pair.prompt)+'</div>' +
+            '<button class="collapse-btn" title="Collapse">⌄</button>' +
           '</div>' +
-          '<div class="tally-row" id="tally-'+pair.id+'"></div>';
+          '<div class="collapsed-pill">' +
+            '<span class="cp-prompt">'+esc(pair.prompt)+'</span>' +
+            '<span class="cp-users">'+esc(pair.users[0])+' vs '+esc(pair.users[1])+'</span>' +
+            '<span class="cp-comments">💬 '+item.comments.length+'</span>' +
+          '</div>' +
+          '<div class="full-body">' +
+            '<div class="diptych">' +
+              '<div class="half" data-user="'+esc(pair.users[0])+'"><img src="'+item.subA.dataUrl+'"/><div class="name-tag">'+esc(pair.users[0])+'</div></div>' +
+              '<div class="vs-badge">VS</div>' +
+              '<div class="half" data-user="'+esc(pair.users[1])+'"><img src="'+item.subB.dataUrl+'"/><div class="name-tag">'+esc(pair.users[1])+'</div></div>' +
+            '</div>' +
+            '<div class="tally-row" id="tally-'+pair.id+'"></div>' +
+            '<div class="comments">' +
+              '<div class="comment-list" id="comments-'+pair.id+'">'+commentsHtml+'</div>' +
+              '<form class="comment-form" id="commentForm-'+pair.id+'">' +
+                '<input type="text" maxlength="200" placeholder="Leave a comment…" value="'+esc(commentDrafts[pair.id]||'')+'" />' +
+                '<button type="submit">Send</button>' +
+              '</form>' +
+            '</div>' +
+          '</div>';
         matchList.appendChild(card);
+
+        function setCollapsed(val){
+          collapsedPairs[pair.id] = val;
+          card.classList.toggle('collapsed', val);
+        }
+        card.querySelector('.collapse-btn').addEventListener('click', function(e){
+          e.stopPropagation();
+          setCollapsed(!collapsedPairs[pair.id]);
+        });
+        card.querySelector('.collapsed-pill').addEventListener('click', function(){
+          setCollapsed(false);
+        });
 
         function markVoted(choice){
           card.querySelectorAll('.half').forEach(function(h){
@@ -970,12 +1641,28 @@
             refreshTally();
           });
         });
+
+        var commentInput = card.querySelector('.comment-form input');
+        commentInput.addEventListener('input', function(){
+          commentDrafts[pair.id] = commentInput.value;
+        });
+        card.querySelector('.comment-form').addEventListener('submit', async function(e){
+          e.preventDefault();
+          var text = commentInput.value.trim();
+          if(!text) return;
+          commentInput.value = '';
+          delete commentDrafts[pair.id];
+          await addComment(state.groupCode, date, pair.id, state.username, text);
+          // the realtime group listener will re-render this card with the new comment.
+        });
       })(votable[j]);
     }
   }
 
+
   // ---------- boot ----------
   async function boot(){
+    ensureDevBadge();
     if(!isConfigured()){
       state.screen = 'setup';
       render();
@@ -997,6 +1684,7 @@
         if(g){
           state.username = session.username;
           state.groupCode = session.groupCode;
+          attachGroupListener(session.groupCode);
           state.screen = 'app';
           render();
           return;
