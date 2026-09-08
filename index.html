@@ -689,7 +689,7 @@
   // ======================================================================
 
   var PROMPTS = [
-    "Something that makes you smile",
+   "Something that makes you smile",
     "The weirdest thing in your fridge",
     "Your view right now",
     "Something you use every day",
@@ -735,7 +735,8 @@
     username: null,
     groupCode: null,
     tab: 'compete',
-    error: ''
+    error: '',
+    settingsError: ''
   };
 
   function isConfigured(){
@@ -1522,12 +1523,34 @@
     countdownTimer = setInterval(tick, 1000);
   }
 
-  var collapsedPairs = {};   // pairId -> true/false, kept in memory only (per-browser UI state)
-  var commentDrafts = {};    // pairId -> in-progress, unsent comment text
+  var collapsedPairs = {};   // "date_pairId" -> true/false, kept in memory only (per-browser UI state)
+  var commentDrafts = {};    // "date_pairId" -> in-progress, unsent comment text
 
   async function renderVote(mainArea, group, round, date){
     mainArea.innerHTML = '<h2 class="page-title">Vote</h2><p class="page-sub">Pick your favorite from each matchup.</p><div class="loading">Loading matchups…</div>';
 
+    // Past days' matchups, oldest first — shown collapsed above today's, like scrolling up through a chat.
+    var historyItems = [];
+    try{
+      var roundsSnap = await groupRef(state.groupCode).child('rounds').once('value');
+      var allRounds = roundsSnap.val() || {};
+      var pastDates = Object.keys(allRounds).filter(function(d){ return d < date; }).sort();
+      for(var pd=0; pd<pastDates.length; pd++){
+        var pdate = pastDates[pd];
+        var pround = allRounds[pdate];
+        if(!pround || !pround.pairs) continue;
+        for(var pp=0; pp<pround.pairs.length; pp++){
+          var ppair = pround.pairs[pp];
+          var pSubA = await getSubmission(state.groupCode, pdate, ppair.users[0]);
+          var pSubB = await getSubmission(state.groupCode, pdate, ppair.users[1]);
+          if(!pSubA || !pSubB) continue;
+          var pComments = await getComments(state.groupCode, pdate, ppair.id);
+          historyItems.push({ date: pdate, pair: ppair, subA: pSubA, subB: pSubB, comments: pComments });
+        }
+      }
+    }catch(e){}
+
+    // Today's matchups you can actually vote on.
     var votable = [];
     for(var i=0;i<round.pairs.length;i++){
       var pair = round.pairs[i];
@@ -1536,11 +1559,11 @@
       var subB = await getSubmission(state.groupCode, date, pair.users[1]);
       if(subA && subB){
         var comments = await getComments(state.groupCode, date, pair.id);
-        votable.push({pair: pair, subA: subA, subB: subB, comments: comments});
+        votable.push({ date: date, pair: pair, subA: subA, subB: subB, comments: comments });
       }
     }
 
-    if(votable.length === 0){
+    if(historyItems.length === 0 && votable.length === 0){
       mainArea.innerHTML = '<h2 class="page-title">Vote</h2><p class="page-sub">Pick your favorite from each matchup.</p>' +
         '<div class="empty-state">No matchups ready to judge yet. Once two players outside your own matchup have both submitted photos, they\'ll show up here.</div>';
       return;
@@ -1548,117 +1571,135 @@
 
     var myVotes = await getVoteMap(state.groupCode, date, state.username);
 
-    mainArea.innerHTML = '<h2 class="page-title">Vote</h2><p class="page-sub">Pick your favorite from each matchup. Click a card\'s header to collapse it.</p><div id="matchList"></div>';
+    mainArea.innerHTML = '<h2 class="page-title">Vote</h2><p class="page-sub">Pick your favorite from each matchup. Older matchups are collapsed above — click one to reopen it.</p><div id="matchList"></div>';
     var matchList = document.getElementById('matchList');
 
-    for(var j=0;j<votable.length;j++){
-      (function(item){
-        var pair = item.pair;
-        var voted = myVotes[pair.id];
-        var isCollapsed = !!collapsedPairs[pair.id];
-        var card = document.createElement('div');
-        card.className = 'matchup' + (isCollapsed ? ' collapsed' : '');
-        card.setAttribute('data-pair', pair.id);
+    function buildMatchupCard(container, item, opts){
+      var pair = item.pair;
+      var key = item.date + '_' + pair.id;
+      var isPast = !opts.interactive;
+      var isCollapsed = collapsedPairs.hasOwnProperty(key) ? collapsedPairs[key] : opts.defaultCollapsed;
+      var card = document.createElement('div');
+      card.className = 'matchup' + (isCollapsed ? ' collapsed' : '') + (isPast ? ' past' : '');
+      card.setAttribute('data-key', key);
 
-        var commentsHtml = item.comments.length ? item.comments.map(function(c){
-          return '<div class="comment"><span class="c-name">'+esc(c.username)+'</span><span class="c-text">'+esc(c.text)+'</span></div>';
-        }).join('') : '<div class="no-comments">No comments yet.</div>';
+      var dateLabel = isPast ? '<span class="date-tag">'+esc(formatDateLabel(item.date))+'</span>' : '';
 
-        card.innerHTML =
-          '<div class="matchup-header">' +
-            '<div class="matchup-prompt">'+esc(pair.prompt)+'</div>' +
-            '<button class="collapse-btn" title="Collapse">⌄</button>' +
+      var commentsHtml = item.comments.length ? item.comments.map(function(c){
+        return '<div class="comment"><span class="c-name">'+esc(c.username)+'</span><span class="c-text">'+esc(c.text)+'</span></div>';
+      }).join('') : '<div class="no-comments">No comments yet.</div>';
+
+      card.innerHTML =
+        '<div class="matchup-header">' +
+          '<div class="matchup-prompt">'+dateLabel+esc(pair.prompt)+'</div>' +
+          '<button class="collapse-btn" title="Collapse">⌄</button>' +
+        '</div>' +
+        '<div class="collapsed-pill">' +
+          dateLabel +
+          '<span class="cp-prompt">'+esc(pair.prompt)+'</span>' +
+          '<span class="cp-users">'+esc(pair.users[0])+' vs '+esc(pair.users[1])+'</span>' +
+          '<span class="cp-comments">💬 '+item.comments.length+'</span>' +
+        '</div>' +
+        '<div class="full-body">' +
+          '<div class="diptych'+(isPast?' readonly':'')+'">' +
+            '<div class="half" data-user="'+esc(pair.users[0])+'"><img src="'+item.subA.dataUrl+'"/><div class="name-tag">'+esc(pair.users[0])+'</div></div>' +
+            '<div class="vs-badge">VS</div>' +
+            '<div class="half" data-user="'+esc(pair.users[1])+'"><img src="'+item.subB.dataUrl+'"/><div class="name-tag">'+esc(pair.users[1])+'</div></div>' +
           '</div>' +
-          '<div class="collapsed-pill">' +
-            '<span class="cp-prompt">'+esc(pair.prompt)+'</span>' +
-            '<span class="cp-users">'+esc(pair.users[0])+' vs '+esc(pair.users[1])+'</span>' +
-            '<span class="cp-comments">💬 '+item.comments.length+'</span>' +
+          '<div class="tally-row" id="tally-'+key+'"></div>' +
+          '<div class="comments">' +
+            '<div class="comment-list" id="comments-'+key+'">'+commentsHtml+'</div>' +
+            '<form class="comment-form" id="commentForm-'+key+'">' +
+              '<input type="text" maxlength="200" placeholder="Leave a comment…" value="'+esc(commentDrafts[key]||'')+'" />' +
+              '<button type="submit">Send</button>' +
+            '</form>' +
           '</div>' +
-          '<div class="full-body">' +
-            '<div class="diptych">' +
-              '<div class="half" data-user="'+esc(pair.users[0])+'"><img src="'+item.subA.dataUrl+'"/><div class="name-tag">'+esc(pair.users[0])+'</div></div>' +
-              '<div class="vs-badge">VS</div>' +
-              '<div class="half" data-user="'+esc(pair.users[1])+'"><img src="'+item.subB.dataUrl+'"/><div class="name-tag">'+esc(pair.users[1])+'</div></div>' +
-            '</div>' +
-            '<div class="tally-row" id="tally-'+pair.id+'"></div>' +
-            '<div class="comments">' +
-              '<div class="comment-list" id="comments-'+pair.id+'">'+commentsHtml+'</div>' +
-              '<form class="comment-form" id="commentForm-'+pair.id+'">' +
-                '<input type="text" maxlength="200" placeholder="Leave a comment…" value="'+esc(commentDrafts[pair.id]||'')+'" />' +
-                '<button type="submit">Send</button>' +
-              '</form>' +
-            '</div>' +
-          '</div>';
-        matchList.appendChild(card);
+        '</div>';
+      container.appendChild(card);
 
-        function setCollapsed(val){
-          collapsedPairs[pair.id] = val;
-          card.classList.toggle('collapsed', val);
-        }
-        card.querySelector('.collapse-btn').addEventListener('click', function(e){
-          e.stopPropagation();
-          setCollapsed(!collapsedPairs[pair.id]);
+      function setCollapsed(val){
+        collapsedPairs[key] = val;
+        card.classList.toggle('collapsed', val);
+      }
+      card.querySelector('.collapse-btn').addEventListener('click', function(e){
+        e.stopPropagation();
+        setCollapsed(!card.classList.contains('collapsed'));
+      });
+      card.querySelector('.collapsed-pill').addEventListener('click', function(){
+        setCollapsed(false);
+      });
+
+      function markVoted(choice){
+        card.querySelectorAll('.half').forEach(function(h){
+          var isChoice = h.getAttribute('data-user') === choice;
+          h.classList.toggle('voted', isChoice);
+          var existingCheck = h.querySelector('.check');
+          if(isChoice && !existingCheck){
+            var chk = document.createElement('div');
+            chk.className = 'check';
+            chk.textContent = '✓';
+            h.appendChild(chk);
+          } else if(!isChoice && existingCheck){
+            existingCheck.remove();
+          }
         });
-        card.querySelector('.collapsed-pill').addEventListener('click', function(){
-          setCollapsed(false);
-        });
+      }
+      if(opts.votedChoice) markVoted(opts.votedChoice);
 
-        function markVoted(choice){
-          card.querySelectorAll('.half').forEach(function(h){
-            var isChoice = h.getAttribute('data-user') === choice;
-            h.classList.toggle('voted', isChoice);
-            var existingCheck = h.querySelector('.check');
-            if(isChoice && !existingCheck){
-              var chk = document.createElement('div');
-              chk.className = 'check';
-              chk.textContent = '✓';
-              h.appendChild(chk);
-            } else if(!isChoice && existingCheck){
-              existingCheck.remove();
-            }
-          });
-        }
-        if(voted) markVoted(voted);
+      async function refreshTally(){
+        var counts = await tallyPair(state.groupCode, item.date, pair);
+        var total = pair.users.reduce(function(s,u){ return s + (counts[u]||0); }, 0);
+        var tallyEl = document.getElementById('tally-'+key);
+        if(!tallyEl) return;
+        tallyEl.innerHTML = pair.users.map(function(u){
+          var c = counts[u] || 0;
+          var pct = total > 0 ? Math.round((c/total)*100) : 0;
+          return '<div class="tally-bar"><div class="bar-track"><div class="bar-fill" style="width:'+pct+'%"></div></div><div class="bar-label">'+esc(u)+' · '+c+' vote'+(c===1?'':'s')+'</div></div>';
+        }).join('');
+      }
+      if(isPast || opts.votedChoice) refreshTally();
 
-        async function refreshTally(){
-          var counts = await tallyPair(state.groupCode, date, pair);
-          var total = pair.users.reduce(function(s,u){ return s + (counts[u]||0); }, 0);
-          var tallyEl = document.getElementById('tally-'+pair.id);
-          if(!tallyEl) return;
-          tallyEl.innerHTML = pair.users.map(function(u){
-            var c = counts[u] || 0;
-            var pct = total > 0 ? Math.round((c/total)*100) : 0;
-            return '<div class="tally-bar"><div class="bar-track"><div class="bar-fill" style="width:'+pct+'%"></div></div><div class="bar-label">'+esc(u)+' · '+c+' vote'+(c===1?'':'s')+'</div></div>';
-          }).join('');
-        }
-        if(voted) refreshTally();
-
+      if(opts.interactive){
         card.querySelectorAll('.half').forEach(function(h){
           h.addEventListener('click', async function(){
             var choice = h.getAttribute('data-user');
             markVoted(choice);
-            await castVote(state.groupCode, date, state.username, pair.id, choice);
+            await castVote(state.groupCode, item.date, state.username, pair.id, choice);
             refreshTally();
           });
         });
+      }
 
-        var commentInput = card.querySelector('.comment-form input');
-        commentInput.addEventListener('input', function(){
-          commentDrafts[pair.id] = commentInput.value;
-        });
-        card.querySelector('.comment-form').addEventListener('submit', async function(e){
-          e.preventDefault();
-          var text = commentInput.value.trim();
-          if(!text) return;
-          commentInput.value = '';
-          delete commentDrafts[pair.id];
-          await addComment(state.groupCode, date, pair.id, state.username, text);
-          // the realtime group listener will re-render this card with the new comment.
-        });
-      })(votable[j]);
+      var commentInput = card.querySelector('.comment-form input');
+      commentInput.addEventListener('input', function(){
+        commentDrafts[key] = commentInput.value;
+      });
+      card.querySelector('.comment-form').addEventListener('submit', async function(e){
+        e.preventDefault();
+        var text = commentInput.value.trim();
+        if(!text) return;
+        commentInput.value = '';
+        delete commentDrafts[key];
+        await addComment(state.groupCode, item.date, pair.id, state.username, text);
+        // the realtime group listener will re-render this card with the new comment.
+      });
     }
-  }
 
+    historyItems.forEach(function(item){
+      buildMatchupCard(matchList, item, { interactive:false, votedChoice:null, defaultCollapsed:true });
+    });
+
+    if(votable.length > 0){
+      var todayHeader = document.createElement('div');
+      todayHeader.className = 'today-divider';
+      todayHeader.textContent = "Today's matchups";
+      matchList.appendChild(todayHeader);
+    }
+
+    votable.forEach(function(item){
+      buildMatchupCard(matchList, item, { interactive:true, votedChoice: myVotes[item.pair.id] || null, defaultCollapsed:false });
+    });
+  }
 
   // ---------- boot ----------
   async function boot(){
