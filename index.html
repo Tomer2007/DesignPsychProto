@@ -3,1741 +3,577 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Snapduel</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,500&family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-<!-- Firebase (free tier) - provides shared storage so friends can see each other's data -->
-<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-database-compat.js"></script>
+<title>Look Up</title>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+
+<!-- =====================================================================
+     VISUAL CONFIG — the ONE place to change how this looks.
+     Edit these CSS variables only; nothing else in the file should
+     hardcode a color, font, or radius.
+     ===================================================================== -->
 <style>
-  :root{
-    --bg:#1B1420;
-    --surface:#26192B;
-    --surface-2:#32222E;
-    --accent:#FFC145;
-    --accent-2:#FF6F59;
-    --text:#F5EFE6;
-    --text-muted:#B9A9C4;
-    --border: rgba(245,239,230,0.14);
-    --btn-ink:#241708;
-  }
-  html[data-theme="light"]{
-    --bg:#FBF7F2;
-    --surface:#FFFFFF;
-    --surface-2:#F1E9DC;
-    --accent:#D97B29;
-    --accent-2:#C63D3D;
-    --text:#231607;
-    --text-muted:#7C6B5A;
-    --border: rgba(35,22,7,0.14);
-    --btn-ink:#FFFFFF;
-  }
-  html[data-theme="ocean"]{
-    --bg:#0B1E2D;
-    --surface:#12293D;
-    --surface-2:#1B3A52;
-    --accent:#5FD0C6;
-    --accent-2:#4C8FE0;
-    --text:#EAF6F6;
-    --text-muted:#8FB4BE;
-    --border: rgba(234,246,246,0.16);
-    --btn-ink:#06222B;
-  }
-  html[data-theme="sunset"]{
-    --bg:#2B1420;
-    --surface:#3A1C2C;
-    --surface-2:#4A2436;
-    --accent:#FF9F5B;
-    --accent-2:#FF5C8A;
-    --text:#FFF3EC;
-    --text-muted:#D9A6B8;
-    --border: rgba(255,243,236,0.16);
-    --btn-ink:#2B1420;
-  }
-  body, .sidebar, .surface, .auth-card, .setup-card, .ticket, .matchup{
-    transition: background-color .2s ease, border-color .2s ease, color .2s ease;
-  }
-  *{box-sizing:border-box;}
-  html,body{margin:0;padding:0;}
-  body{
-    background:var(--bg);
-    color:var(--text);
-    font-family:'Public Sans', sans-serif;
-    min-height:100vh;
-    -webkit-font-smoothing:antialiased;
-  }
-  #root{min-height:100vh;}
-  h1,h2,h3, .display{
-    font-family:'Fraunces', serif;
-    font-weight:600;
-    letter-spacing:-0.01em;
-  }
-  button{
-    font-family:inherit;
-    cursor:pointer;
-    border:none;
-  }
-  input{
-    font-family:inherit;
-  }
-  ::selection{ background:var(--accent); color:#1B1420; }
-
-  /* ---------- Setup screen ---------- */
-  .setup-wrap{
-    min-height:100vh;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    padding:24px;
-  }
-  .setup-card{
-    width:100%;
-    max-width:560px;
-    background:var(--surface);
-    border:1px solid var(--border);
-    border-radius:18px;
-    padding:36px 32px;
-  }
-  .setup-card h2{ font-size:22px; margin:0 0 12px; }
-  .setup-card p{ color:var(--text-muted); font-size:14.5px; line-height:1.6; }
-  .setup-card ol{ color:var(--text-muted); font-size:14.5px; line-height:1.9; padding-left:20px; }
-  .setup-card code{ background:var(--surface-2); padding:2px 6px; border-radius:5px; color:var(--text); font-size:13px; }
-
-  /* ---------- Auth screen ---------- */
-  .auth-wrap{
-    min-height:100vh;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    padding:24px;
-  }
-  .auth-card{
-    width:100%;
-    max-width:420px;
-    background:var(--surface);
-    border:1px solid var(--border);
-    border-radius:18px;
-    padding:36px 32px;
-    position:relative;
-  }
-  .auth-brand{
-    display:flex;
-    align-items:baseline;
-    gap:10px;
-    margin-bottom:6px;
-  }
-  .auth-brand .dot{
-    width:10px;height:10px;border-radius:50%;
-    background:var(--accent-2);
-    display:inline-block;
-  }
-  .auth-brand h1{ font-size:28px; margin:0; }
-  .auth-sub{ color:var(--text-muted); font-size:14.5px; margin:0 0 26px; line-height:1.5;}
-  .seg{
-    display:flex;
-    background:var(--surface-2);
-    border-radius:12px;
-    padding:4px;
-    margin-bottom:22px;
-  }
-  .seg button{
-    flex:1;
-    background:transparent;
-    color:var(--text-muted);
-    padding:9px 0;
-    border-radius:9px;
-    font-size:14px;
-    font-weight:600;
-    transition:background .15s ease, color .15s ease;
-  }
-  .seg button.active{
-    background:var(--accent);
-    color:var(--btn-ink);
-  }
-  label{
-    display:block;
-    font-size:12.5px;
-    color:var(--text-muted);
-    margin-bottom:7px;
-    font-weight:600;
-  }
-  .field{ margin-bottom:16px; }
-  .field input{
-    width:100%;
-    background:#1B1420;
-    border:1px solid var(--border);
-    color:var(--text);
-    padding:12px 14px;
-    border-radius:10px;
-    font-size:15px;
-    outline:none;
-  }
-  .field input:focus{ border-color:var(--accent); }
-  .code-input{ text-transform:uppercase; letter-spacing:0.14em; font-weight:600; }
-  .primary-btn{
-    width:100%;
-    background:var(--accent);
-    color:var(--btn-ink);
-    padding:13px 0;
-    border-radius:10px;
-    font-size:15px;
-    font-weight:700;
-    margin-top:6px;
-    transition:transform .12s ease;
-  }
-  .primary-btn:active{ transform:scale(0.98); }
-  .primary-btn:disabled{ opacity:0.5; cursor:default; }
-  .error-msg{
-    color:var(--accent-2);
-    font-size:13.5px;
-    margin:-6px 0 14px;
-  }
-  .hint{ color:var(--text-muted); font-size:12.5px; margin-top:16px; line-height:1.5; }
-
-  /* ---------- App shell ---------- */
-  .app-shell{
-    display:flex;
-    min-height:100vh;
-  }
-  .sidebar{
-    width:240px;
-    flex-shrink:0;
-    background:var(--surface);
-    border-right:1px solid var(--border);
-    padding:26px 20px;
-    display:flex;
-    flex-direction:column;
-  }
-  .group-badge{
-    background:var(--surface-2);
-    border:1px dashed var(--border);
-    border-radius:12px;
-    padding:14px;
-    margin-bottom:22px;
-  }
-  .group-badge .label{ font-size:11px; color:var(--text-muted); font-weight:600; margin-bottom:6px;}
-  .group-badge .code{ font-size:22px; letter-spacing:0.12em; font-weight:700; font-family:'Fraunces',serif;}
-  .members{ margin-bottom:26px; }
-  .members .label{ font-size:11px; color:var(--text-muted); font-weight:600; margin-bottom:8px;}
-  .member-chip{
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    gap:8px;
-    padding:6px 0;
-    font-size:14px;
-  }
-  .member-chip .member-name{ display:flex; align-items:center; gap:8px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .member-chip .win-count{ color:var(--text-muted); font-size:12.5px; font-variant-numeric:tabular-nums; flex-shrink:0; }
-  .member-chip.champ .member-name{ color:var(--accent); font-weight:700; }
-  .member-chip.champ .win-count{ color:var(--accent); font-weight:700; }
-  .avatar-wrap{
-    position:relative;
-    width:20px; height:20px;
-    flex-shrink:0;
-    display:inline-flex;
-  }
-  .avatar-img{
-    width:20px; height:20px;
-    border-radius:50%;
-    object-fit:cover;
-    display:block;
-  }
-  .avatar-fallback{
-    width:20px; height:20px;
-    border-radius:50%;
-    background:var(--accent-2);
-    flex-shrink:0;
-    display:block;
-  }
-  .avatar-fallback.you{ background:var(--accent); }
-  .crown-badge{
-    position:absolute;
-    top:-10px; left:50%;
-    transform:translateX(-50%);
-    font-size:13px;
-    line-height:1;
-    filter:drop-shadow(0 1px 1px rgba(0,0,0,0.4));
-  }
-  .nav{ display:flex; flex-direction:column; gap:6px; margin-bottom:auto; }
-  .nav button{
-    text-align:left;
-    background:transparent;
-    color:var(--text-muted);
-    padding:11px 14px;
-    border-radius:10px;
-    font-size:14.5px;
-    font-weight:600;
-    display:flex;
-    align-items:center;
-    gap:10px;
-  }
-  .nav button.active{
-    background:var(--surface-2);
-    color:var(--text);
-  }
-  .nav button:hover{ color:var(--text); }
-  .settings-btn{
-    background:transparent;
-    color:var(--text-muted);
-    font-size:13px;
-    padding:8px 0;
-    text-align:left;
-  }
-  .settings-btn:hover{ color:var(--text); }
-  .leave-btn{
-    background:transparent;
-    color:var(--text-muted);
-    font-size:13px;
-    padding:8px 0 4px;
-    text-align:left;
-  }
-  .leave-btn:hover{ color:var(--accent-2); }
-
-  .main{
-    flex:1;
-    padding:40px 44px;
-    overflow-y:auto;
-    max-width:920px;
-  }
-  .page-title{ font-size:26px; margin:0 0 6px; }
-  .page-sub{ color:var(--text-muted); font-size:14.5px; margin:0 0 30px; }
-
-  /* ---------- Compete page ---------- */
-  .ticket{
-    background:var(--surface);
-    border:1px solid var(--border);
-    border-radius:20px;
-    padding:34px;
-    position:relative;
-    max-width:560px;
-  }
-  .ticket:before{
-    content:"";
-    position:absolute;
-    left:-11px; top:50%;
-    width:22px;height:22px;
-    background:var(--bg);
-    border:1px solid var(--border);
-    border-radius:50%;
-    transform:translateY(-50%);
-  }
-  .ticket:after{
-    content:"";
-    position:absolute;
-    right:-11px; top:50%;
-    width:22px;height:22px;
-    background:var(--bg);
-    border:1px solid var(--border);
-    border-radius:50%;
-    transform:translateY(-50%);
-  }
-  .ticket-row{
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    margin-bottom:22px;
-  }
-  .vs-pill{
-    background:var(--surface-2);
-    border-radius:20px;
-    padding:6px 14px;
-    font-size:13px;
-    color:var(--text-muted);
-  }
-  .vs-pill b{ color:var(--text); }
-  .countdown{
-    font-size:14px;
-    color:var(--accent);
-    font-weight:700;
-    font-variant-numeric:tabular-nums;
-  }
-  .prompt-text{
-    font-size:30px;
-    line-height:1.28;
-    margin:0 0 26px;
-  }
-  .dropzone{
-    border:1.5px dashed var(--border);
-    border-radius:14px;
-    padding:34px 18px;
-    text-align:center;
-    color:var(--text-muted);
-    cursor:pointer;
-    transition:border-color .15s ease, background .15s ease;
-    display:block;
-  }
-  .dropzone:hover{ border-color:var(--accent); background:rgba(255,193,69,0.05); }
-  .dropzone input{ display:none; }
-  .dropzone .big{ font-size:15px; color:var(--text); font-weight:600; margin-bottom:4px;}
-  .submitted-wrap{ text-align:center; }
-  .submitted-img{
-    width:100%;
-    max-width:320px;
-    border-radius:14px;
-    border:1px solid var(--border);
-    margin:0 auto 16px;
-    display:block;
-  }
-  .status-line{ font-size:14px; color:var(--text-muted); }
-  .status-line.good{ color:var(--accent); }
-  .resting-card{ color:var(--text-muted); font-size:15px; line-height:1.6; }
-
-  /* ---------- Vote page ---------- */
-  .matchup{
-    background:var(--surface);
-    border:1px solid var(--border);
-    border-radius:18px;
-    padding:22px;
-    margin-bottom:22px;
-    transition:padding .15s ease;
-  }
-  .matchup.collapsed{
-    padding:14px 20px;
-  }
-  .matchup-header{
-    display:flex;
-    align-items:flex-start;
-    justify-content:space-between;
-    gap:14px;
-    margin-bottom:16px;
-  }
-  .matchup.collapsed .matchup-header{ display:none; }
-  .matchup.collapsed .full-body{ display:none; }
-  .collapse-btn{
-    background:var(--surface-2);
-    color:var(--text-muted);
-    width:28px; height:28px;
-    border-radius:50%;
-    flex-shrink:0;
-    font-size:15px;
-    line-height:1;
-  }
-  .collapse-btn:hover{ color:var(--text); }
-  .collapsed-pill{
-    display:none;
-    align-items:center;
-    gap:14px;
-    font-size:14px;
-    color:var(--text-muted);
-    cursor:pointer;
-  }
-  .matchup.collapsed .collapsed-pill{ display:flex; }
-  .collapsed-pill .cp-prompt{
-    color:var(--text);
-    font-weight:600;
-    font-family:'Fraunces', serif;
-    flex:1;
-    overflow:hidden;
-    text-overflow:ellipsis;
-    white-space:nowrap;
-  }
-  .collapsed-pill .cp-users{ flex-shrink:0; }
-  .collapsed-pill .cp-comments{
-    flex-shrink:0;
-    background:var(--surface-2);
-    padding:4px 10px;
-    border-radius:12px;
-    font-size:12.5px;
-  }
-  .matchup-prompt{
-    font-size:18px;
-    margin:0 0 16px;
-  }
-  .diptych{
-    display:flex;
-    gap:2px;
-    border-radius:12px;
-    overflow:hidden;
-    position:relative;
-  }
-  .half{
-    flex:1;
-    position:relative;
-    cursor:pointer;
-    background:#000;
-  }
-  .half img{
-    width:100%;
-    height:260px;
-    object-fit:cover;
-    display:block;
-    opacity:0.92;
-    transition:opacity .15s ease;
-  }
-  .half:hover img{ opacity:1; }
-  .half.voted img{ opacity:1; }
-  .half .name-tag{
-    position:absolute;
-    bottom:0; left:0; right:0;
-    padding:10px 12px;
-    background:linear-gradient(transparent, rgba(0,0,0,0.75));
-    font-size:13.5px;
-    font-weight:600;
-  }
-  .half .check{
-    position:absolute;
-    top:10px; right:10px;
-    width:26px;height:26px;
-    border-radius:50%;
-    background:var(--accent-2);
-    color:var(--btn-ink);
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    font-size:14px;
-    font-weight:800;
-  }
-  .vs-badge{
-    position:absolute;
-    top:50%; left:50%;
-    transform:translate(-50%,-50%);
-    width:36px;height:36px;
-    background:var(--bg);
-    border:1px solid var(--border);
-    border-radius:50%;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    font-size:11px;
-    font-weight:700;
-    color:var(--text-muted);
-    z-index:2;
-  }
-  .tally-row{
-    display:flex;
-    gap:2px;
-    margin-top:10px;
-  }
-  .tally-bar{ flex:1; }
-  .tally-bar .bar-track{
-    background:var(--surface-2);
-    border-radius:6px;
-    height:6px;
-    overflow:hidden;
-    margin-bottom:6px;
-  }
-  .tally-bar .bar-fill{
-    background:var(--accent);
-    height:100%;
-  }
-  .tally-bar .bar-label{ font-size:12.5px; color:var(--text-muted); }
-
-  .comments{
-    margin-top:20px;
-    border-top:1px solid var(--border);
-    padding-top:16px;
-  }
-  .comment{
-    display:flex;
-    gap:7px;
-    margin-bottom:9px;
-    font-size:13.5px;
-    line-height:1.45;
-  }
-  .comment .c-name{ font-weight:700; color:var(--accent-2); flex-shrink:0; }
-  .comment .c-text{ color:var(--text); word-break:break-word; }
-  .no-comments{ color:var(--text-muted); font-size:13px; font-style:italic; margin-bottom:10px; }
-  .comment-form{
-    display:flex;
-    gap:8px;
-    margin-top:12px;
-  }
-  .comment-form input{
-    flex:1;
-    background:#1B1420;
-    border:1px solid var(--border);
-    color:var(--text);
-    padding:9px 14px;
-    border-radius:20px;
-    font-size:13.5px;
-    outline:none;
-  }
-  .comment-form input:focus{ border-color:var(--accent); }
-  .comment-form button{
-    background:var(--accent);
-    color:var(--btn-ink);
-    padding:9px 18px;
-    border-radius:20px;
-    font-size:13px;
-    font-weight:700;
-    flex-shrink:0;
-  }
-  .empty-state{
-    color:var(--text-muted);
-    font-size:15px;
-    line-height:1.6;
-    padding:40px 0;
-    max-width:420px;
-  }
-  .loading{ color:var(--text-muted); font-size:14px; padding:20px 0; }
-
-  .matchup.past{ opacity:0.94; }
-  .diptych.readonly .half{ cursor:default; }
-  .diptych.readonly .half:hover img{ opacity:0.92; }
-  .date-tag{
-    display:inline-block;
-    background:var(--surface-2);
-    color:var(--text-muted);
-    font-size:11px;
-    font-weight:700;
-    padding:2px 8px;
-    border-radius:8px;
-    margin-right:8px;
-    vertical-align:middle;
-    text-transform:uppercase;
-    letter-spacing:0.04em;
-  }
-  .today-divider{
-    text-align:center;
-    color:var(--text-muted);
-    font-size:12px;
-    font-weight:700;
-    text-transform:uppercase;
-    letter-spacing:0.08em;
-    margin:28px 0 18px;
-    position:relative;
-  }
-  .today-divider:before, .today-divider:after{
-    content:"";
-    position:absolute;
-    top:50%;
-    width:35%;
-    height:1px;
-    background:var(--border);
-  }
-  .today-divider:before{ left:0; }
-  .today-divider:after{ right:0; }
-
-  /* ---------- Settings page ---------- */
-  .settings-section{
-    background:var(--surface);
-    border:1px solid var(--border);
-    border-radius:16px;
-    padding:24px;
-    margin-bottom:20px;
-    max-width:520px;
-  }
-  .settings-section h3{ font-size:16px; margin:0 0 14px; }
-  .avatar-settings-row{ display:flex; align-items:center; gap:18px; }
-  .avatar-preview{ width:56px; height:56px; border-radius:50%; overflow:hidden; flex-shrink:0; background:var(--surface-2); display:block; }
-  .avatar-preview img{ width:100%; height:100%; object-fit:cover; display:block; }
-  .dropzone.small{
-    flex:1;
-    padding:16px;
-    font-size:13.5px;
-  }
-  .dropzone.small .big{ font-size:14px; }
-  .theme-row{ display:flex; flex-wrap:wrap; gap:10px; }
-  .theme-swatch{
-    background:var(--surface-2);
-    color:var(--text-muted);
-    padding:9px 14px 9px 10px;
-    border-radius:10px;
-    font-size:13.5px;
-    font-weight:600;
-    border:1.5px solid transparent;
-    display:flex;
-    align-items:center;
-  }
-  .theme-swatch.active{ border-color:var(--accent); color:var(--text); }
-  .swatch-dot{
-    width:10px;height:10px;border-radius:50%;
-    display:inline-block;
-    margin-right:8px;
+  :root {
+    --board: #C9A876;
+    --paper: #EFE7D6;
+    --paper-edge: #D8CBAA;
+    --ink: #26333A;
+    --ink-soft: #5B6A70;
+    --accent: #B5651D;
+    --accent-soft: #E7B27A;
+    --sage: #7C9885;
+    --danger: #A9432E;
+    --white: #FFF9EE;
+    --radius: 10px;
+    --font-display: 'Caveat', cursive;
+    --font-body: 'Inter', system-ui, sans-serif;
   }
 
-  @media (max-width: 760px){
-    .app-shell{ flex-direction:column; }
-    .sidebar{
-      width:100%;
-      border-right:none;
-      border-bottom:1px solid var(--border);
-      padding:18px 20px;
-    }
-    .members{ display:none; }
-    .nav{ flex-direction:row; margin-bottom:0; }
-    .nav button{ flex:1; justify-content:center; }
-    .main{ padding:26px 20px; max-width:none; }
-    .diptych{ flex-direction:column; }
-    .half img{ height:200px; }
-    .vs-badge{ top:50%; }
+  @import url('https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&family=Inter:wght@400;500;600;700&display=swap');
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; font-family: var(--font-body); color: var(--ink);
+    min-height: 100vh;
+    background:
+      radial-gradient(circle at 1px 1px, rgba(0,0,0,0.13) 1px, transparent 0) 0 0/16px 16px,
+      var(--board);
+    display: flex; justify-content: center; padding: 24px 16px;
   }
+  .shell { width: 100%; max-width: 480px; }
+  .screen { display: none; }
+  .screen.active { display: block; }
+
+  h1.h1 { font-family: var(--font-display); font-weight: 700; font-size: 2.4rem; margin: 0 0 4px; }
+  h2.h2 { font-family: var(--font-display); font-weight: 700; font-size: 1.7rem; margin: 0 0 10px; }
+  .sub { color: var(--ink-soft); font-size: 0.92rem; margin: 0 0 18px; line-height: 1.4; }
+
+  .card {
+    background: var(--paper); border: 1px solid var(--paper-edge); border-radius: var(--radius);
+    padding: 20px; box-shadow: 0 6px 0 var(--paper-edge), 0 10px 18px rgba(0,0,0,0.18);
+    transform: rotate(-1deg); margin-bottom: 18px;
+  }
+  .card.flat { transform: none; }
+  .pin { width: 12px; height: 12px; border-radius: 50%; background: var(--accent); display: inline-block;
+         box-shadow: 0 2px 3px rgba(0,0,0,0.35); margin-bottom: 8px; }
+
+  .btn { font-family: var(--font-body); font-weight: 600; font-size: 0.95rem; border: none; border-radius: var(--radius);
+         padding: 12px 18px; cursor: pointer; width: 100%; }
+  .btn:active { transform: translateY(1px); }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn.primary { background: var(--accent); color: var(--white); }
+  .btn.secondary { background: var(--sage); color: var(--white); }
+  .btn.ghost { background: transparent; color: var(--ink); border: 1.5px dashed var(--ink-soft); }
+  .row { display: flex; gap: 10px; }
+  .row > * { flex: 1; }
+
+  .field { margin-bottom: 14px; }
+  .label { display: block; font-size: 0.8rem; font-weight: 600; color: var(--ink-soft); margin-bottom: 5px; }
+  .input, textarea.input {
+    width: 100%; font-family: var(--font-body); font-size: 0.95rem; padding: 10px 12px; border-radius: 8px;
+    border: 1.5px solid var(--paper-edge); background: var(--white); color: var(--ink);
+  }
+  textarea.input { resize: vertical; min-height: 60px; }
+
+  .person { background: var(--white); border: 1px solid var(--paper-edge); border-radius: var(--radius);
+            padding: 14px; margin-bottom: 12px; cursor: pointer; display: flex; gap: 12px; align-items: center; }
+  .person:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+  .avatar { width: 46px; height: 46px; border-radius: 50%; object-fit: cover; flex-shrink: 0; border: 2px solid var(--paper-edge); }
+  .avatar.fallback { display: flex; align-items: center; justify-content: center; font-family: var(--font-display);
+                      font-size: 1.3rem; font-weight: 700; color: var(--white); }
+
+  .topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+  .code-badge { font-family: var(--font-display); font-weight: 700; font-size: 1.1rem; background: var(--accent-soft);
+                padding: 2px 10px; border-radius: 6px; }
+
+  .chat-window { background: var(--white); border-radius: var(--radius); border: 1px solid var(--paper-edge);
+                 height: 360px; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+  .bubble { max-width: 78%; padding: 8px 12px; border-radius: 14px; font-size: 0.92rem; line-height: 1.35; }
+  .bubble.mine { align-self: flex-end; background: var(--accent); color: var(--white); border-bottom-right-radius: 4px; }
+  .bubble.theirs { align-self: flex-start; background: var(--paper); color: var(--ink); border-bottom-left-radius: 4px; }
+  .empty { text-align: center; color: var(--ink-soft); font-size: 0.85rem; margin: auto; }
+
+  .wordcount { font-size: 0.75rem; color: var(--ink-soft); text-align: right; margin: -8px 0 10px; }
+  .wordcount.over { color: var(--danger); font-weight: 700; }
+
+  .link-btn { background: none; border: none; color: var(--ink-soft); text-decoration: underline; cursor: pointer; font-size: 0.85rem; padding: 0; }
+  .swatch { width: 30px; height: 30px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; }
+  .swatch.selected { border-color: var(--ink); }
+  .error { background: #F6DCD3; color: var(--danger); border-radius: 8px; padding: 8px 12px; font-size: 0.85rem; margin-bottom: 12px; }
+  .banner { background: #FDF0D5; border: 1px dashed var(--accent); border-radius: 8px; padding: 10px 12px; font-size: 0.8rem; margin-bottom: 14px; }
 </style>
 </head>
 <body>
-<div id="root"></div>
+<div class="shell">
+
+  <!-- SIGN IN -->
+  <section id="screen-signin" class="screen active">
+    <div class="card">
+      <span class="pin"></span>
+      <h1 class="h1">Look Up</h1>
+      <p class="sub">Sign in with Google to continue. This keeps one profile per person, so nobody can dodge the word limit by making a new account.</p>
+      <div id="g_id_button_container" style="margin-bottom:10px;"></div>
+      <div id="dev-banner" class="banner" style="display:none;"></div>
+      <button id="dev-bypass-btn" class="btn ghost" style="display:none;" onclick="devBypassSignIn()">Continue without Google (dev mode)</button>
+    </div>
+  </section>
+
+  <!-- RULES -->
+  <section id="screen-rules" class="screen">
+    <div class="card">
+      <span class="pin"></span>
+      <h1 class="h1">Look Up</h1>
+      <p class="sub">A tiny experiment in meeting the people already around you.</p>
+      <h2 class="h2" style="font-size:1.2rem;">How it works</h2>
+      <ul style="color:var(--ink-soft); font-size:0.9rem; line-height:1.6; padding-left:18px;">
+        <li>Join a group with a shared code (your class, event, or floor).</li>
+        <li>Make a quick profile: name, photo, color.</li>
+        <li>Browse who else is in the group — just names and photos, nothing else.</li>
+        <li>Send a <strong>short</strong> message — capped at <span id="rules-wordlimit"></span> words.</li>
+        <li>The rest of the conversation happens in person. That's the point.</li>
+      </ul>
+    </div>
+    <button class="btn primary" onclick="goTo('groupChoice')">I'm in — let's set up</button>
+  </section>
+
+  <!-- GROUP CHOICE -->
+  <section id="screen-groupChoice" class="screen">
+    <div class="card">
+      <span class="pin"></span>
+      <h2 class="h2">Find your people</h2>
+      <p class="sub">Create a new group, or join one with a code someone shared with you.</p>
+      <div id="group-error"></div>
+      <div id="group-buttons" class="row">
+        <button class="btn primary" onclick="createGroup()">Create group</button>
+        <button class="btn ghost" onclick="showJoinForm()">Join group</button>
+      </div>
+      <div id="join-form" style="display:none;">
+        <div class="field">
+          <label class="label">Group code</label>
+          <input id="join-code-input" class="input" maxlength="10" placeholder="e.g. 7XQPL" />
+        </div>
+        <div class="row">
+          <button class="btn primary" onclick="joinGroup()">Join</button>
+          <button class="btn ghost" onclick="hideJoinForm()">Back</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PROFILE -->
+  <section id="screen-profile" class="screen">
+    <div class="card">
+      <span class="pin"></span>
+      <h2 class="h2">Set up your profile</h2>
+      <p class="sub">Just a name, a photo, and a color — that's all anyone will see.</p>
+      <div class="field">
+        <label class="label">Name</label>
+        <input id="profile-name" class="input" maxlength="30" placeholder="What should people call you?" oninput="onProfileFieldChange()" />
+      </div>
+      <div class="field">
+        <label class="label">Profile picture (optional)</label>
+        <div style="display:flex; align-items:center; gap:12px;">
+          <img id="profile-pic-preview" class="avatar" style="width:54px;height:54px;display:none;" />
+          <div id="profile-pic-fallback" class="avatar fallback" style="width:54px;height:54px;">?</div>
+          <input type="file" accept="image/*" onchange="handleProfileFile(event)" />
+        </div>
+      </div>
+      <div class="field">
+        <label class="label">Background color</label>
+        <div id="swatches" style="display:flex; gap:8px;"></div>
+      </div>
+    </div>
+    <button id="profile-submit" class="btn primary" disabled onclick="submitProfile()">Enter the group</button>
+  </section>
+
+  <!-- MENU -->
+  <section id="screen-menu" class="screen">
+    <div class="topbar">
+      <div>
+        <div style="font-size:0.78rem; color:var(--ink-soft);">Group</div>
+        <span id="menu-code" class="code-badge"></span>
+      </div>
+      <button class="link-btn" onclick="leaveGroup()">Leave group</button>
+    </div>
+    <div class="card flat" style="display:flex; align-items:center; gap:12px;">
+      <div id="menu-me-avatar-wrap"></div>
+      <div>
+        <div id="menu-me-name" style="font-weight:700;"></div>
+        <div style="font-size:0.78rem; color:var(--ink-soft);">that's you</div>
+      </div>
+    </div>
+    <h2 class="h2">Who's here</h2>
+    <div id="menu-status" style="color:var(--ink-soft); font-size:0.9rem;"></div>
+    <div id="menu-list"></div>
+  </section>
+
+  <!-- CHAT -->
+  <section id="screen-chat" class="screen">
+    <div class="topbar">
+      <button class="link-btn" onclick="goTo('menu'); renderMenu();">← Back</button>
+    </div>
+    <div class="card flat" style="display:flex; align-items:center; gap:12px;">
+      <div id="chat-partner-avatar-wrap"></div>
+      <div>
+        <div id="chat-partner-name" style="font-weight:700;"></div>
+        <div style="font-size:0.75rem; color:var(--ink-soft);"><span id="chat-wordlimit-label"></span> words max per message.</div>
+      </div>
+    </div>
+    <div id="chat-window" class="chat-window"></div>
+    <textarea id="chat-draft" class="input" placeholder="Type a short message…" oninput="onDraftChange()"></textarea>
+    <div id="chat-wordcount" class="wordcount">0 / 0 words</div>
+    <button id="chat-send-btn" class="btn primary" disabled onclick="sendMessage()">Send</button>
+  </section>
+
+</div>
 
 <script>
-(function(){
+/* =========================================================================
+   APP CONFIG — the ONE place to change behavior & Google sign-in setup.
+   ========================================================================= */
+const CONFIG = {
+  MAX_WORDS_PER_MESSAGE: 12,
+  POLL_INTERVAL_MS: 3000,
+  GROUP_CODE_LENGTH: 5,
+  BG_SWATCHES: ["#E7B27A", "#7C9885", "#B5651D", "#5B6A70", "#F2C14E", "#26333A"],
 
-  // ======================================================================
-  // FIREBASE SETUP — fill this in with YOUR OWN free Firebase project.
-  // See the on-screen setup instructions (shown until this is filled in).
-  // ======================================================================
-  var firebaseConfig = {
-    apiKey: "AIzaSyA8NsOoSa8cTlHwB25DmCBL8q5TeTarEKk",
-    authDomain: "proto-photo-duel-id.firebaseapp.com",
-    databaseURL: "https://proto-photo-duel-id-default-rtdb.firebaseio.com/",
-    projectId: "proto-photo-duel-id", 
+  // --- Google Sign-In ---
+  // 1. Create an OAuth Client ID (type: Web application) at https://console.cloud.google.com/apis/credentials
+  // 2. Add "http://localhost:5500" (or whatever port VS Code Live Server uses) under Authorized JavaScript origins.
+  // 3. Paste the client ID below.
+  GOOGLE_CLIENT_ID: "YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com",
+  // If true and no real client ID is set, a "dev bypass" button appears so you can test locally
+  // without setting up OAuth yet. Set to false once GOOGLE_CLIENT_ID is real, to enforce real sign-in.
+  ALLOW_DEV_BYPASS: true,
+};
 
-    storageBucket: "proto-photo-duel-id.firebasestorage.app",
-    messagingSenderId: "540257451285",
-    appId: "1:540257451285:web:1eff7f04d3d53240533d1c",
-    measurementId: "G-MNZXFQHD1L"
-  };
-  // ======================================================================
+document.getElementById("rules-wordlimit").textContent = CONFIG.MAX_WORDS_PER_MESSAGE;
+document.getElementById("chat-wordlimit-label").textContent = CONFIG.MAX_WORDS_PER_MESSAGE;
 
-  var PROMPTS = [
-   "Something that makes you smile",
-    "The weirdest thing in your fridge",
-    "Your view right now",
-    "Something you use every day",
-    "A shadow you like",
-    "Something red",
-    "Your favorite cup or mug",
-    "Your least favorite cup or mug",
-    "A tiny detail you saw today that no one else noticed",
-    "Something you'd never usually photograph",
-    "Something you haven't photographed for a competition yet",
-    "The last thing you touched",
-    "Something shiny",
-    "Something that smells good",
-    "Your workspace, mid-task",
-    "A cool pattern or texture",
-    "Something you're proud of",
-    "The sky, right now",
-    "Your go-to snack",
-    "A drawing of a dog or cat",
-    "A drawing of a cool car",
-    "Something you own but rarely use",
-    "A door you walk through often",
-    "Your favourite sandwich",
-    "The most colorful thing nearby"
-  ];
+/* =========================================================================
+   STORAGE LAYER — currently backed by localStorage so this works as a
+   plain static file with no server. Swap the guts of these three
+   functions to talk to a real backend later without touching the rest
+   of the app.
+   NOTE: localStorage is per-browser. To simulate multiple people while
+   testing locally, open the site in several tabs (or browsers) — they
+   share localStorage on the same machine and will see each other.
+   ========================================================================= */
+function storGet(key) {
+  const v = localStorage.getItem(key);
+  return v === null ? null : v;
+}
+function storSet(key, value) {
+  localStorage.setItem(key, value);
+}
 
-  var root = document.getElementById('root');
-  var db = null;
+/* =========================================================================
+   STATE
+   ========================================================================= */
+let currentUser = null;   // {sub, name, email, picture}
+let groupCode = null;
+let myId = null;
+let myProfile = null;
+let activePartner = null; // {id, profile}
+let pollTimer = null;
+let pendingPic = null;
 
-  // ---------- TEST MODE: simulated day offset ----------
-  // Lets you press ] / [ to jump the app's notion of "today" forward/back a day,
-  // so you can run through several days of rounds quickly while testing.
-  // This is local to your browser only — it doesn't change the date for anyone else.
-  var dayOffset = 0;
-  try{ dayOffset = parseInt(localStorage.getItem('snapduel_dayOffset') || '0', 10) || 0; }catch(e){}
-  function persistDayOffset(){
-    try{ localStorage.setItem('snapduel_dayOffset', String(dayOffset)); }catch(e){}
+/* =========================================================================
+   HELPERS
+   ========================================================================= */
+function genCode(len) {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  let out = "";
+  for (let i = 0; i < len; i++) out += chars[Math.floor(Math.random() * chars.length)];
+  return out;
+}
+function wordCount(text) {
+  const t = text.trim();
+  return t.length === 0 ? 0 : t.split(/\s+/).length;
+}
+function pairKey(a, b) { return [a, b].sort().join("__"); }
+function initials(name) { return (name || "?").trim().slice(0, 1).toUpperCase(); }
+function decodeJwt(token) {
+  const payload = token.split(".")[1];
+  const json = decodeURIComponent(
+    atob(payload.replace(/-/g, "+").replace(/_/g, "/"))
+      .split("").map(c => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2)).join("")
+  );
+  return JSON.parse(json);
+}
+function avatarHtml(profile, size) {
+  if (profile.pic) {
+    return `<img src="${profile.pic}" class="avatar" style="width:${size}px;height:${size}px;" />`;
   }
+  return `<div class="avatar fallback" style="width:${size}px;height:${size}px;background:${profile.bgColor || '#999'};">${initials(profile.name)}</div>`;
+}
 
-  var state = {
-    screen: 'loading', // loading | setup | auth | app
-    authMode: 'create', // create | join
-    username: null,
-    groupCode: null,
-    tab: 'compete',
-    error: '',
-    settingsError: ''
-  };
+/* =========================================================================
+   SCREEN NAVIGATION
+   ========================================================================= */
+function goTo(name) {
+  document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
+  document.getElementById("screen-" + name).classList.add("active");
+  if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+  if (name === "menu") pollTimer = setInterval(renderMenu, CONFIG.POLL_INTERVAL_MS);
+  if (name === "chat") pollTimer = setInterval(renderChat, CONFIG.POLL_INTERVAL_MS);
+}
 
-  function isConfigured(){
-    return firebaseConfig.apiKey && firebaseConfig.apiKey.indexOf('YOUR_') !== 0
-      && firebaseConfig.databaseURL && firebaseConfig.databaseURL.indexOf('YOUR_') === -1;
-  }
+/* =========================================================================
+   GOOGLE SIGN-IN
+   ========================================================================= */
+function onGoogleSignIn(response) {
+  const data = decodeJwt(response.credential);
+  currentUser = { sub: data.sub, name: data.name, email: data.email, picture: data.picture };
+  afterSignIn();
+}
 
-  function todayStr(){
-    var d = new Date();
-    d.setDate(d.getDate() + dayOffset);
-    return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
-  }
-  function msUntilMidnight(){
-    var now = new Date();
-    now.setDate(now.getDate() + dayOffset);
-    var next = new Date(now.getFullYear(), now.getMonth(), now.getDate()+1, 0,0,0,0);
-    return next - now;
-  }
-  function genCode(){
-    var chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-    var out = '';
-    for(var i=0;i<6;i++) out += chars[Math.floor(Math.random()*chars.length)];
-    return out;
-  }
-  function shuffle(arr){
-    var a = arr.slice();
-    for(var i=a.length-1;i>0;i--){
-      var j = Math.floor(Math.random()*(i+1));
-      var tmp=a[i]; a[i]=a[j]; a[j]=tmp;
-    }
-    return a;
-  }
-  function esc(s){
-    var d = document.createElement('div');
-    d.textContent = s == null ? '' : s;
-    return d.innerHTML;
-  }
-  function shiftDateStr(dateStr, delta){
-    var parts = dateStr.split('-').map(Number);
-    var d = new Date(parts[0], parts[1]-1, parts[2]);
-    d.setDate(d.getDate() + delta);
-    return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
-  }
-  function formatDateLabel(dateStr){
-    var parts = dateStr.split('-').map(Number);
-    var d = new Date(parts[0], parts[1]-1, parts[2]);
-    return d.toLocaleDateString(undefined, { month:'short', day:'numeric' });
-  }
+function devBypassSignIn() {
+  const fakeSub = "dev_" + Math.random().toString(36).slice(2, 8);
+  currentUser = { sub: fakeSub, name: "Dev User", email: fakeSub + "@example.com", picture: null };
+  afterSignIn();
+}
 
-  // ---------- color theme ----------
-  var THEMES = [
-    { id:'dark',   label:'Dark',   dot:'#FFC145' },
-    { id:'light',  label:'Bright', dot:'#D97B29' },
-    { id:'ocean',  label:'Ocean',  dot:'#5FD0C6' },
-    { id:'sunset', label:'Sunset', dot:'#FF9F5B' }
-  ];
-  function getTheme(){
-    try{ return localStorage.getItem('snapduel_theme') || 'dark'; }catch(e){ return 'dark'; }
-  }
-  function applyTheme(theme){
-    try{ localStorage.setItem('snapduel_theme', theme); }catch(e){}
-    document.documentElement.setAttribute('data-theme', theme);
-  }
-  applyTheme(getTheme()); // apply immediately so even the setup/auth screens are themed
+function afterSignIn() {
+  goTo("rules");
+}
 
-  // ---------- test-mode day-skip badge ----------
-  function ensureDevBadge(){
-    if(document.getElementById('devBadge')) return;
-    var badge = document.createElement('div');
-    badge.id = 'devBadge';
-    badge.style.cssText = 'position:fixed;bottom:14px;right:14px;background:#26192B;border:1px solid rgba(245,239,230,0.18);color:#B9A9C4;font-family:"Public Sans",sans-serif;font-size:12px;padding:9px 13px;border-radius:10px;z-index:9999;line-height:1.6;box-shadow:0 6px 18px rgba(0,0,0,0.35);';
-    document.body.appendChild(badge);
-    updateDevBadge();
+function initGoogleSignIn() {
+  const usingRealClientId = CONFIG.GOOGLE_CLIENT_ID && !CONFIG.GOOGLE_CLIENT_ID.startsWith("YOUR_");
+  if (usingRealClientId && window.google && window.google.accounts) {
+    google.accounts.id.initialize({ client_id: CONFIG.GOOGLE_CLIENT_ID, callback: onGoogleSignIn });
+    google.accounts.id.renderButton(document.getElementById("g_id_button_container"), { theme: "outline", size: "large", width: 260 });
+  } else {
+    document.getElementById("g_id_button_container").innerHTML =
+      '<p style="font-size:0.8rem;color:var(--ink-soft);">Google sign-in isn\'t configured yet — add your OAuth Client ID in CONFIG.</p>';
   }
-  function updateDevBadge(){
-    var badge = document.getElementById('devBadge');
-    if(!badge) return;
-    badge.innerHTML = '<b style="color:#FFC145;">TEST MODE</b> — simulated date: <b>'+todayStr()+'</b><br>Press <b>]</b> to skip a day forward, <b>[</b> to go back';
+  if (!usingRealClientId && CONFIG.ALLOW_DEV_BYPASS) {
+    document.getElementById("dev-banner").style.display = "block";
+    document.getElementById("dev-banner").textContent = "Dev mode: no Google Client ID set, so sign-in is bypassed for local testing.";
+    document.getElementById("dev-bypass-btn").style.display = "block";
   }
-  document.addEventListener('keydown', function(e){
-    var tag = (e.target && e.target.tagName || '').toLowerCase();
-    if(tag === 'input' || tag === 'textarea') return; // don't hijack normal typing
-    if(e.key === ']'){
-      dayOffset++;
-      persistDayOffset();
-      updateDevBadge();
-      render();
-    } else if(e.key === '['){
-      dayOffset = Math.max(0, dayOffset - 1);
-      persistDayOffset();
-      updateDevBadge();
-      render();
-    }
+}
+window.addEventListener("load", () => setTimeout(initGoogleSignIn, 300));
+
+/* =========================================================================
+   GROUP CHOICE
+   ========================================================================= */
+function showJoinForm() { document.getElementById("group-buttons").style.display = "none"; document.getElementById("join-form").style.display = "block"; }
+function hideJoinForm() { document.getElementById("group-buttons").style.display = "flex"; document.getElementById("join-form").style.display = "none"; document.getElementById("group-error").innerHTML = ""; }
+
+function createGroup() {
+  const code = genCode(CONFIG.GROUP_CODE_LENGTH);
+  storSet(`group:${code}:members`, JSON.stringify([]));
+  groupCode = code;
+  enterProfileScreenForGroup();
+}
+
+function joinGroup() {
+  const code = document.getElementById("join-code-input").value.trim().toUpperCase();
+  if (!code) return;
+  const membersRaw = storGet(`group:${code}:members`);
+  if (membersRaw === null) {
+    document.getElementById("group-error").innerHTML = '<div class="error">That group code wasn\'t found. Double-check it and try again.</div>';
+    return;
+  }
+  document.getElementById("group-error").innerHTML = "";
+  groupCode = code;
+  enterProfileScreenForGroup();
+}
+
+// One profile per Google account per group: id is derived from the Google sub,
+// so re-entering the same group with the same account reuses the same identity
+// instead of creating a new one.
+function enterProfileScreenForGroup() {
+  myId = "g_" + currentUser.sub;
+  const existingRaw = storGet(`profile:${groupCode}:${myId}`);
+  if (existingRaw) {
+    myProfile = JSON.parse(existingRaw);
+    ensureMembership();
+    goTo("menu");
+    renderMenu();
+  } else {
+    resetProfileForm();
+    goTo("profile");
+  }
+}
+
+function ensureMembership() {
+  const membersRaw = storGet(`group:${groupCode}:members`);
+  const members = membersRaw ? JSON.parse(membersRaw) : [];
+  if (!members.includes(myId)) {
+    members.push(myId);
+    storSet(`group:${groupCode}:members`, JSON.stringify(members));
+  }
+}
+
+/* =========================================================================
+   PROFILE SETUP
+   ========================================================================= */
+let selectedBg = CONFIG.BG_SWATCHES[0];
+
+function resetProfileForm() {
+  document.getElementById("profile-name").value = "";
+  pendingPic = currentUser.picture || null;
+  selectedBg = CONFIG.BG_SWATCHES[0];
+  renderSwatches();
+  updateProfilePreview();
+}
+
+function renderSwatches() {
+  const wrap = document.getElementById("swatches");
+  wrap.innerHTML = "";
+  CONFIG.BG_SWATCHES.forEach(sw => {
+    const div = document.createElement("div");
+    div.className = "swatch" + (sw === selectedBg ? " selected" : "");
+    div.style.background = sw;
+    div.onclick = () => { selectedBg = sw; renderSwatches(); updateProfilePreview(); };
+    wrap.appendChild(div);
   });
+}
 
-  // ---------- session (local to this browser) ----------
-  function getSession(){
-    try{ var raw = localStorage.getItem('snapduel_session'); return raw ? JSON.parse(raw) : null; }
-    catch(e){ return null; }
+function updateProfilePreview() {
+  const img = document.getElementById("profile-pic-preview");
+  const fallback = document.getElementById("profile-pic-fallback");
+  const name = document.getElementById("profile-name").value;
+  if (pendingPic) {
+    img.src = pendingPic; img.style.display = "block"; fallback.style.display = "none";
+  } else {
+    img.style.display = "none"; fallback.style.display = "flex";
+    fallback.style.background = selectedBg;
+    fallback.textContent = initials(name);
   }
-  function setSession(obj){
-    try{
-      if(obj) localStorage.setItem('snapduel_session', JSON.stringify(obj));
-      else localStorage.removeItem('snapduel_session');
-    }catch(e){}
-  }
+}
 
-  // ---------- Firebase data helpers ----------
-  function groupRef(code){ return db.ref('groups/' + code); }
+function onProfileFieldChange() {
+  updateProfilePreview();
+  document.getElementById("profile-submit").disabled = !document.getElementById("profile-name").value.trim();
+}
 
-  async function getGroup(code){
-    var snap = await groupRef(code).once('value');
-    var val = snap.val();
-    if(!val) return null;
-    return {
-      code: code,
-      createdAt: val.createdAt,
-      members: val.members ? Object.keys(val.members) : [],
-      wins: val.wins || {},
-      avatars: val.avatars || {}
+function handleProfileFile(e) {
+  const file = e.target.files && e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    const img = new Image();
+    img.onload = () => {
+      const maxSize = 160;
+      const scale = Math.min(1, maxSize / Math.max(img.width, img.height));
+      const w = Math.round(img.width * scale), h = Math.round(img.height * scale);
+      const canvas = document.createElement("canvas");
+      canvas.width = w; canvas.height = h;
+      canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+      pendingPic = canvas.toDataURL("image/jpeg", 0.8);
+      updateProfilePreview();
     };
+    img.src = reader.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function submitProfile() {
+  const name = document.getElementById("profile-name").value.trim();
+  if (!name) return;
+  myProfile = { name, pic: pendingPic, bgColor: selectedBg, googleSub: currentUser.sub };
+  storSet(`profile:${groupCode}:${myId}`, JSON.stringify(myProfile));
+  ensureMembership();
+  goTo("menu");
+  renderMenu();
+}
+
+/* =========================================================================
+   MENU — name + photo only, no interests, no sorting
+   ========================================================================= */
+function renderMenu() {
+  document.getElementById("menu-code").textContent = groupCode;
+  document.getElementById("menu-me-name").textContent = myProfile.name;
+  document.getElementById("menu-me-avatar-wrap").innerHTML = avatarHtml(myProfile, 46);
+
+  const membersRaw = storGet(`group:${groupCode}:members`);
+  const members = membersRaw ? JSON.parse(membersRaw) : [];
+  const others = members.filter(id => id !== myId);
+  const list = document.getElementById("menu-list");
+  const status = document.getElementById("menu-status");
+
+  if (others.length === 0) {
+    status.textContent = `Nobody else has joined yet — share the code ${groupCode}.`;
+    list.innerHTML = "";
+    return;
   }
-  async function createGroup(code, username){
-    await groupRef(code).set({ createdAt: Date.now(), members: { }});
-    await groupRef(code).child('members').update((function(){ var o={}; o[username]=true; return o; })());
+  status.textContent = "";
+  list.innerHTML = others.map(id => {
+    const raw = storGet(`profile:${groupCode}:${id}`);
+    if (!raw) return "";
+    const p = JSON.parse(raw);
+    return `<div class="person" onclick="openChat('${id}')">
+      ${avatarHtml(p, 46)}
+      <div style="font-weight:700;">${escapeHtml(p.name)}</div>
+    </div>`;
+  }).join("");
+}
+
+function escapeHtml(s) {
+  return s.replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+
+function leaveGroup() {
+  groupCode = null; myProfile = null; activePartner = null;
+  goTo("groupChoice");
+  hideJoinForm();
+}
+
+/* =========================================================================
+   CHAT
+   ========================================================================= */
+function openChat(partnerId) {
+  const raw = storGet(`profile:${groupCode}:${partnerId}`);
+  if (!raw) return;
+  activePartner = { id: partnerId, profile: JSON.parse(raw) };
+  document.getElementById("chat-partner-name").textContent = activePartner.profile.name;
+  document.getElementById("chat-partner-avatar-wrap").innerHTML = avatarHtml(activePartner.profile, 46);
+  document.getElementById("chat-draft").value = "";
+  onDraftChange();
+  goTo("chat");
+  renderChat();
+}
+
+function chatKey() { return `chat:${groupCode}:${pairKey(myId, activePartner.id)}`; }
+
+function renderChat() {
+  const raw = storGet(chatKey());
+  const messages = raw ? JSON.parse(raw) : [];
+  const win = document.getElementById("chat-window");
+  if (messages.length === 0) {
+    win.innerHTML = '<div class="empty">No messages yet. Break the ice — briefly.</div>';
+    return;
   }
-  async function joinGroup(code, username){
-    var o = {}; o[username] = true;
-    await groupRef(code).child('members').update(o);
-  }
+  win.innerHTML = messages.map(m =>
+    `<div class="bubble ${m.from === myId ? 'mine' : 'theirs'}">${escapeHtml(m.text)}</div>`
+  ).join("");
+  win.scrollTop = win.scrollHeight;
+}
 
-  async function ensureRound(code, date){
-    var ref = groupRef(code).child('rounds').child(date);
-    var snap = await ref.once('value');
-    if(snap.val()) return snap.val();
-    var group = await getGroup(code);
-    if(!group) return null;
-    var members = shuffle(group.members);
-    var prompts = shuffle(PROMPTS);
-    var pairs = [];
-    var resting = null;
-    var pi = 0;
-    for(var i=0; i+1<members.length; i+=2){
-      pairs.push({
-        id: 'p'+(i/2),
-        users: [members[i], members[i+1]],
-        prompt: prompts[pi % prompts.length]
-      });
-      pi++;
-    }
-    if(members.length % 2 === 1) resting = members[members.length-1];
-    var round = { date: date, pairs: pairs, resting: resting, generatedAt: Date.now() };
-    // Atomic create-if-absent so two people loading at once don't create two different rounds.
-    var result = await ref.transaction(function(current){
-      return current === null ? round : undefined;
-    });
-    return result.snapshot.val();
-  }
+function onDraftChange() {
+  const text = document.getElementById("chat-draft").value;
+  const words = wordCount(text);
+  const over = words > CONFIG.MAX_WORDS_PER_MESSAGE;
+  const cnt = document.getElementById("chat-wordcount");
+  cnt.textContent = `${words} / ${CONFIG.MAX_WORDS_PER_MESSAGE} words`;
+  cnt.className = "wordcount" + (over ? " over" : "");
+  document.getElementById("chat-send-btn").disabled = !text.trim() || over;
+}
 
-  // Re-pairs anyone left over (a resting member, or a brand-new joiner) as soon as
-  // the group's membership changes, so a newcomer gets matched instantly.
-  async function reconcileRound(code, date, members){
-    var ref = groupRef(code).child('rounds').child(date);
-    var result = await ref.transaction(function(round){
-      if(!round) return round;
-      var assigned = {};
-      (round.pairs || []).forEach(function(p){ p.users.forEach(function(u){ assigned[u]=true; }); });
-      var unassigned = members.filter(function(m){ return !assigned[m] && m !== round.resting; });
-      if(round.resting && members.indexOf(round.resting) !== -1){
-        unassigned = [round.resting].concat(unassigned);
-      }
-      var prompts = shuffle(PROMPTS);
-      var pi = 0;
-      var nextId = (round.pairs || []).length;
-      round.pairs = round.pairs || [];
-      while(unassigned.length >= 2){
-        var a = unassigned.shift();
-        var b = unassigned.shift();
-        round.pairs.push({ id: 'p'+nextId, users: [a, b], prompt: prompts[pi % prompts.length] });
-        nextId++; pi++;
-      }
-      round.resting = unassigned.length === 1 ? unassigned[0] : null;
-      return round;
-    });
-    return result.snapshot.val();
-  }
-
-  // ---------- leaderboard: tally daily winners once a round's day has passed ----------
-  async function finalizeRound(code, date, round){
-    // Claim finalization atomically so only one client does the counting.
-    var claimRef = groupRef(code).child('rounds').child(date).child('finalized');
-    var claim = await claimRef.transaction(function(cur){ return cur ? undefined : true; });
-    if(!claim.committed) return;
-    var votesSnap = await groupRef(code).child('votes').child(date).once('value');
-    var allVotes = votesSnap.val() || {};
-    var winners = [];
-    (round.pairs || []).forEach(function(pair){
-      var counts = {}; pair.users.forEach(function(u){ counts[u]=0; });
-      Object.keys(allVotes).forEach(function(voter){
-        var choice = allVotes[voter] ? allVotes[voter][pair.id] : null;
-        if(choice && counts.hasOwnProperty(choice)) counts[choice]++;
-      });
-      var a = pair.users[0], b = pair.users[1];
-      if(counts[a] > counts[b]) winners.push(a);
-      else if(counts[b] > counts[a]) winners.push(b);
-      // ties: nobody gets a win for that matchup
-    });
-    for(var i=0;i<winners.length;i++){
-      await groupRef(code).child('wins').child(winners[i]).transaction(function(cur){ return (cur||0) + 1; });
-    }
-  }
-  async function finalizePastRounds(code, today){
-    var snap = await groupRef(code).child('rounds').once('value');
-    var rounds = snap.val() || {};
-    var dates = Object.keys(rounds).filter(function(d){ return d < today && rounds[d] && !rounds[d].finalized; });
-    for(var i=0;i<dates.length;i++){
-      try{ await finalizeRound(code, dates[i], rounds[dates[i]]); }catch(e){}
-    }
-  }
-
-  // ---------- comments on a matchup ----------
-  async function getComments(code, date, pairId){
-    var snap = await groupRef(code).child('comments').child(date).child(pairId).once('value');
-    var val = snap.val() || {};
-    return Object.keys(val).map(function(id){
-      var c = val[id];
-      return { id: id, username: c.username, text: c.text, ts: c.ts };
-    }).sort(function(a,b){ return a.ts - b.ts; });
-  }
-  async function addComment(code, date, pairId, username, text){
-    var ref = groupRef(code).child('comments').child(date).child(pairId).push();
-    await ref.set({ username: username, text: text, ts: Date.now() });
-  }
-
-  // ---------- weekly cleanup: drop rounds/photos/votes/comments older than 7 days ----------
-  // (win counts and the leaderboard are stored separately, so history is safe to prune.)
-  async function cleanupOldData(code, today){
-    var claimRef = groupRef(code).child('cleanupDone').child(today);
-    var claim = await claimRef.transaction(function(cur){ return cur ? undefined : true; });
-    if(!claim.committed) return; // already ran cleanup today
-    var cutoff = shiftDateStr(today, -7);
-    var snap = await groupRef(code).child('rounds').once('value');
-    var rounds = snap.val() || {};
-    var oldDates = Object.keys(rounds).filter(function(d){ return d < cutoff; });
-    for(var i=0;i<oldDates.length;i++){
-      var d = oldDates[i];
-      await groupRef(code).child('rounds').child(d).remove();
-      await groupRef(code).child('submissions').child(d).remove();
-      await groupRef(code).child('votes').child(d).remove();
-      await groupRef(code).child('comments').child(d).remove();
-    }
-  }
-
-  // ---------- settings: rename & avatar ----------
-  // Renames a member everywhere they're referenced (membership, wins, past rounds,
-  // submissions, votes, and comment authorship) in one atomic pass.
-  async function renameUser(code, oldName, newName){
-    if(oldName === newName) return { ok:true };
-    var membersSnap = await groupRef(code).child('members').once('value');
-    var existingMembers = membersSnap.val() || {};
-    var takenNow = Object.keys(existingMembers).some(function(k){ return k.toLowerCase()===newName.toLowerCase() && k!==oldName; });
-    if(takenNow) return { ok:false, reason:'taken' };
-
-    var result = await groupRef(code).transaction(function(g){
-      if(!g) return g;
-      var members = g.members || {};
-      var conflict = Object.keys(members).some(function(k){ return k.toLowerCase()===newName.toLowerCase() && k!==oldName; });
-      if(conflict) return; // abort transaction
-      if(members[oldName] !== undefined){ delete members[oldName]; members[newName] = true; }
-      g.members = members;
-
-      if(g.wins && g.wins[oldName] !== undefined){
-        g.wins[newName] = (g.wins[newName]||0) + g.wins[oldName];
-        delete g.wins[oldName];
-      }
-      if(g.avatars && g.avatars[oldName] !== undefined){
-        g.avatars[newName] = g.avatars[oldName];
-        delete g.avatars[oldName];
-      }
-      if(g.rounds){
-        Object.keys(g.rounds).forEach(function(d){
-          var r = g.rounds[d];
-          if(!r) return;
-          if(r.resting === oldName) r.resting = newName;
-          (r.pairs || []).forEach(function(p){
-            p.users = p.users.map(function(u){ return u === oldName ? newName : u; });
-          });
-        });
-      }
-      if(g.submissions){
-        Object.keys(g.submissions).forEach(function(d){
-          var subs = g.submissions[d];
-          if(subs && subs[oldName] !== undefined){
-            subs[newName] = subs[oldName];
-            delete subs[oldName];
-          }
-        });
-      }
-      if(g.votes){
-        Object.keys(g.votes).forEach(function(d){
-          var votesForDate = g.votes[d];
-          if(!votesForDate) return;
-          if(votesForDate[oldName] !== undefined){
-            votesForDate[newName] = votesForDate[oldName];
-            delete votesForDate[oldName];
-          }
-          Object.keys(votesForDate).forEach(function(voter){
-            var map = votesForDate[voter];
-            if(!map) return;
-            Object.keys(map).forEach(function(pid){
-              if(map[pid] === oldName) map[pid] = newName;
-            });
-          });
-        });
-      }
-      if(g.comments){
-        Object.keys(g.comments).forEach(function(d){
-          var byPair = g.comments[d];
-          if(!byPair) return;
-          Object.keys(byPair).forEach(function(pid){
-            var byId = byPair[pid];
-            if(!byId) return;
-            Object.keys(byId).forEach(function(cid){
-              if(byId[cid] && byId[cid].username === oldName) byId[cid].username = newName;
-            });
-          });
-        });
-      }
-      return g;
-    });
-    if(!result.committed) return { ok:false, reason:'taken' };
-    return { ok:true };
-  }
-
-  async function setAvatar(code, username, dataUrl){
-    await groupRef(code).child('avatars').child(username).set(dataUrl);
-  }
-
-  function resizeAvatar(file){
-    return new Promise(function(resolve, reject){
-      var reader = new FileReader();
-      reader.onload = function(e){
-        var img = new Image();
-        img.onload = function(){
-          var side = Math.min(img.width, img.height);
-          var sx = (img.width - side) / 2, sy = (img.height - side) / 2;
-          var canvas = document.createElement('canvas');
-          canvas.width = 160; canvas.height = 160;
-          var ctx = canvas.getContext('2d');
-          ctx.drawImage(img, sx, sy, side, side, 0, 0, 160, 160);
-          resolve(canvas.toDataURL('image/jpeg', 0.85));
-        };
-        img.onerror = reject;
-        img.src = e.target.result;
-      };
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-    });
-  }
-
-  // ---------- realtime sync ----------
-  // Keeps everyone's screen in sync automatically: new members, new photos, and
-  // new votes all re-render the app without anyone needing to refresh.
-  var groupListenerRef = null;
-  function attachGroupListener(code){
-    detachGroupListener();
-    groupListenerRef = groupRef(code);
-    groupListenerRef.on('value', function(){
-      if(state.screen === 'app' && state.groupCode === code) render();
-    });
-  }
-  function detachGroupListener(){
-    if(groupListenerRef){ groupListenerRef.off(); groupListenerRef = null; }
-  }
-
-  async function getSubmission(code, date, username){
-    var snap = await groupRef(code).child('submissions').child(date).child(username).once('value');
-    return snap.val();
-  }
-  async function setSubmission(code, date, username, dataUrl){
-    await groupRef(code).child('submissions').child(date).child(username).set({ dataUrl: dataUrl, ts: Date.now() });
-  }
-
-  async function getVoteMap(code, date, voter){
-    var snap = await groupRef(code).child('votes').child(date).child(voter).once('value');
-    return snap.val() || {};
-  }
-  async function castVote(code, date, voter, pairId, choice){
-    await groupRef(code).child('votes').child(date).child(voter).child(pairId).set(choice);
-  }
-  async function tallyPair(code, date, pair){
-    var snap = await groupRef(code).child('votes').child(date).once('value');
-    var all = snap.val() || {};
-    var counts = {}; pair.users.forEach(function(u){ counts[u]=0; });
-    Object.keys(all).forEach(function(voter){
-      var choice = all[voter] ? all[voter][pair.id] : null;
-      if(choice && counts.hasOwnProperty(choice)) counts[choice]++;
-    });
-    return counts;
-  }
-
-  function resizeImage(file){
-    return new Promise(function(resolve, reject){
-      var reader = new FileReader();
-      reader.onload = function(e){
-        var img = new Image();
-        img.onload = function(){
-          var maxW = 900;
-          var scale = Math.min(1, maxW / img.width);
-          var w = Math.round(img.width * scale);
-          var h = Math.round(img.height * scale);
-          var canvas = document.createElement('canvas');
-          canvas.width = w; canvas.height = h;
-          var ctx = canvas.getContext('2d');
-          ctx.drawImage(img, 0, 0, w, h);
-          resolve(canvas.toDataURL('image/jpeg', 0.72));
-        };
-        img.onerror = reject;
-        img.src = e.target.result;
-      };
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-    });
-  }
-
-  // ---------- render ----------
-  async function render(){
-    if(state.screen === 'loading'){
-      root.innerHTML = '<div class="auth-wrap"><div class="hint">Loading…</div></div>';
-      return;
-    }
-    if(state.screen === 'setup'){
-      renderSetup();
-      return;
-    }
-    if(state.screen === 'auth'){
-      renderAuth();
-      return;
-    }
-    if(state.screen === 'app'){
-      await renderApp();
-      return;
-    }
-  }
-
-  function renderSetup(){
-    root.innerHTML =
-      '<div class="setup-wrap"><div class="setup-card">' +
-        '<h2>One-time setup needed</h2>' +
-        '<p>This app needs a free Firebase database so everyone in a group can see the same prompts, photos, and votes. Takes about 3 minutes:</p>' +
-        '<ol>' +
-          '<li>Go to <code>console.firebase.google.com</code> and create a free project.</li>' +
-          '<li>In the left menu, open <code>Build → Realtime Database</code> and click "Create Database" (start in <b>test mode</b>).</li>' +
-          '<li>Click the gear icon → <b>Project settings</b>, scroll to "Your apps", click the <code>&lt;/&gt;</code> (web) icon, and register an app.</li>' +
-          '<li>Copy the <code>firebaseConfig</code> object it shows you.</li>' +
-          '<li>Open this file\'s HTML in a text editor, find <code>firebaseConfig</code> near the top of the script, and paste your values in.</li>' +
-          '<li>Save, re-upload, and reload this page.</li>' +
-        '</ol>' +
-        '<p>Ask me if you\'d like the exact rules text to paste into the Realtime Database "Rules" tab.</p>' +
-      '</div></div>';
-  }
-
-  function renderAuth(){
-    var isCreate = state.authMode === 'create';
-    root.innerHTML =
-      '<div class="auth-wrap"><div class="auth-card">' +
-        '<div class="auth-brand"><span class="dot"></span><h1>Snapduel</h1></div>' +
-        '<p class="auth-sub">A daily photo challenge for your friend group. Get paired up, snap a photo before time runs out, then vote on everyone else\'s matchups.</p>' +
-        '<div class="seg">' +
-          '<button data-mode="create" class="'+(isCreate?'active':'')+'">New group</button>' +
-          '<button data-mode="join" class="'+(!isCreate?'active':'')+'">Join a group</button>' +
-        '</div>' +
-        '<div class="field"><label>Your name</label><input id="usernameInput" type="text" maxlength="20" placeholder="e.g. Jordan" /></div>' +
-        (isCreate ? '' :
-          '<div class="field"><label>Group code</label><input id="codeInput" class="code-input" type="text" maxlength="6" placeholder="ABC123" /></div>'
-        ) +
-        (state.error ? '<div class="error-msg">'+esc(state.error)+'</div>' : '') +
-        '<button id="submitBtn" class="primary-btn">'+(isCreate ? 'Create group' : 'Join group')+'</button>' +
-        '<p class="hint">'+(isCreate ? 'You\'ll get a random 6-character code to share with friends.' : 'Ask whoever started the group for their code.')+'</p>' +
-      '</div></div>';
-
-    root.querySelectorAll('.seg button').forEach(function(b){
-      b.addEventListener('click', function(){
-        state.authMode = b.getAttribute('data-mode');
-        state.error = '';
-        render();
-      });
-    });
-
-    document.getElementById('submitBtn').addEventListener('click', handleAuthSubmit);
-    document.querySelectorAll('.field input').forEach(function(inp){
-      inp.addEventListener('keydown', function(e){
-        if(e.key === 'Enter') handleAuthSubmit();
-      });
-    });
-  }
-
-  async function handleAuthSubmit(){
-    var usernameInput = document.getElementById('usernameInput');
-    var username = (usernameInput.value || '').trim();
-    if(!username){
-      state.error = 'Enter a name first.';
-      render();
-      return;
-    }
-    try{
-      if(state.authMode === 'create'){
-        var code = genCode();
-        var existing = await getGroup(code);
-        if(existing) code = genCode();
-        await createGroup(code, username);
-        setSession({ username: username, groupCode: code });
-        state.username = username;
-        state.groupCode = code;
-        attachGroupListener(code);
-        state.screen = 'app';
-        state.tab = 'compete';
-        state.error = '';
-        render();
-      } else {
-        var codeInput = document.getElementById('codeInput');
-        var code2 = (codeInput.value || '').trim().toUpperCase();
-        if(!code2){
-          state.error = 'Enter a group code.';
-          render();
-          return;
-        }
-        var g = await getGroup(code2);
-        if(!g){
-          state.error = 'No group found with that code.';
-          render();
-          return;
-        }
-        await joinGroup(code2, username);
-        setSession({ username: username, groupCode: code2 });
-        state.username = username;
-        state.groupCode = code2;
-        attachGroupListener(code2);
-        state.screen = 'app';
-        state.tab = 'compete';
-        state.error = '';
-        render();
-      }
-    }catch(err){
-      state.error = 'Connection issue — check the database rules/config and try again.';
-      render();
-    }
-  }
-
-  async function renderApp(){
-    var group = await getGroup(state.groupCode);
-    if(!group){
-      setSession(null);
-      state.screen = 'auth';
-      render();
-      return;
-    }
-    var date = todayStr();
-    try{
-      await finalizePastRounds(state.groupCode, date);
-      await cleanupOldData(state.groupCode, date);
-      group = await getGroup(state.groupCode); // pick up any newly-tallied wins / cleanup
-    }catch(e){}
-
-    var ranked = group.members.slice().sort(function(a,b){ return (group.wins[b]||0) - (group.wins[a]||0); });
-    var membersHtml = ranked.map(function(m, idx){
-      var w = group.wins[m] || 0;
-      var isTop = idx === 0 && w > 0;
-      var avatarUrl = group.avatars && group.avatars[m];
-      var avatarInner = avatarUrl
-        ? '<img class="avatar-img" src="'+avatarUrl+'"/>'
-        : '<span class="avatar-fallback'+(m===state.username?' you':'')+'"></span>';
-      var avatarHtml = '<span class="avatar-wrap">'+avatarInner+(isTop?'<span class="crown-badge">👑</span>':'')+'</span>';
-      return '<div class="member-chip'+(isTop?' champ':'')+'">' +
-        '<span class="member-name">'+avatarHtml+esc(m)+(m===state.username?' (you)':'')+'</span>' +
-        '<span class="win-count">'+w+'</span>' +
-      '</div>';
-    }).join('');
-
-    root.innerHTML =
-      '<div class="app-shell">' +
-        '<div class="sidebar">' +
-          '<div class="group-badge"><div class="label">GROUP CODE</div><div class="code">'+esc(group.code)+'</div></div>' +
-          '<div class="members"><div class="label">LEADERBOARD ('+group.members.length+')</div>'+membersHtml+'</div>' +
-          '<div class="nav">' +
-            '<button data-tab="compete" class="'+(state.tab==='compete'?'active':'')+'">📸 Compete</button>' +
-            '<button data-tab="vote" class="'+(state.tab==='vote'?'active':'')+'">🗳️ Vote</button>' +
-          '</div>' +
-          '<button class="settings-btn" id="settingsBtn">⚙️ Settings</button>' +
-          '<button class="leave-btn" id="leaveBtn">Leave group</button>' +
-        '</div>' +
-        '<div class="main" id="mainArea"><div class="loading">Loading…</div></div>' +
-      '</div>';
-
-    document.querySelectorAll('.nav button').forEach(function(b){
-      b.addEventListener('click', function(){
-        state.tab = b.getAttribute('data-tab');
-        render();
-      });
-    });
-    document.getElementById('settingsBtn').addEventListener('click', function(){
-      state.tab = 'settings';
-      render();
-    });
-    document.getElementById('leaveBtn').addEventListener('click', function(){
-      detachGroupListener();
-      setSession(null);
-      state.username = null;
-      state.groupCode = null;
-      state.screen = 'auth';
-      render();
-    });
-
-    var mainArea = document.getElementById('mainArea');
-
-    if(state.tab === 'settings'){
-      await renderSettings(mainArea, group);
-      return;
-    }
-
-    var round;
-    try{
-      round = await ensureRound(state.groupCode, date);
-      if(round) round = await reconcileRound(state.groupCode, date, group.members);
-    }catch(err){
-      mainArea.innerHTML = '<div class="empty-state">Couldn\'t load today\'s round.<br><br>Error: '+esc(err && err.message ? err.message : String(err))+'<br><br>This is usually a Firebase Realtime Database rules problem — open the Rules tab in your Firebase console and make sure read/write access is allowed.</div>';
-      return;
-    }
-    if(!round){
-      mainArea.innerHTML = '<div class="empty-state">Couldn\'t load today\'s round. Try refreshing.</div>';
-      return;
-    }
-
-    if(state.tab === 'compete'){
-      await renderCompete(mainArea, group, round, date);
-    } else {
-      await renderVote(mainArea, group, round, date);
-    }
-  }
-
-  async function renderSettings(mainArea, group){
-    var myAvatar = group.avatars && group.avatars[state.username];
-    mainArea.innerHTML =
-      '<h2 class="page-title">Settings</h2>' +
-      '<p class="page-sub">Personalize your name, photo, and the site\'s look.</p>' +
-      '<div class="settings-section">' +
-        '<h3>Your name</h3>' +
-        '<div class="field"><input id="nameInput" type="text" maxlength="20" value="'+esc(state.username)+'" /></div>' +
-        (state.settingsError ? '<div class="error-msg">'+esc(state.settingsError)+'</div>' : '') +
-        '<button class="primary-btn" id="saveNameBtn" style="max-width:200px;">Save name</button>' +
-      '</div>' +
-      '<div class="settings-section">' +
-        '<h3>Profile picture</h3>' +
-        '<div class="avatar-settings-row">' +
-          '<span class="avatar-preview">'+(myAvatar ? '<img src="'+myAvatar+'"/>' : '<span class="avatar-fallback you" style="width:56px;height:56px;"></span>')+'</span>' +
-          '<label class="dropzone small" id="avatarDrop">' +
-            '<div class="big">Upload a photo</div>Click to choose an image — it\'ll be cropped into a circle' +
-            '<input type="file" accept="image/*" id="avatarInput" />' +
-          '</label>' +
-        '</div>' +
-      '</div>' +
-      '<div class="settings-section">' +
-        '<h3>Color theme</h3>' +
-        '<div class="theme-row">' +
-          THEMES.map(function(t){
-            return '<button class="theme-swatch'+(getTheme()===t.id?' active':'')+'" data-theme="'+t.id+'"><span class="swatch-dot" style="background:'+t.dot+'"></span>'+t.label+'</button>';
-          }).join('') +
-        '</div>' +
-      '</div>';
-
-    document.getElementById('saveNameBtn').addEventListener('click', async function(){
-      var newName = document.getElementById('nameInput').value.trim();
-      if(!newName){ state.settingsError = 'Enter a name.'; render(); return; }
-      if(newName === state.username){ return; }
-      var res = await renameUser(state.groupCode, state.username, newName);
-      if(!res.ok){
-        state.settingsError = 'That name is already taken in this group.';
-        render();
-        return;
-      }
-      state.username = newName;
-      state.settingsError = '';
-      setSession({ username: newName, groupCode: state.groupCode });
-      render();
-    });
-
-    document.getElementById('avatarInput').addEventListener('change', async function(e){
-      var file = e.target.files[0];
-      if(!file) return;
-      var drop = document.getElementById('avatarDrop');
-      drop.innerHTML = '<div class="big">Uploading…</div>';
-      try{
-        var dataUrl = await resizeAvatar(file);
-        await setAvatar(state.groupCode, state.username, dataUrl);
-        render();
-      }catch(err){
-        drop.innerHTML = '<div class="big">Something went wrong — try a different image.</div>';
-      }
-    });
-
-    document.querySelectorAll('.theme-swatch').forEach(function(btn){
-      btn.addEventListener('click', function(){
-        applyTheme(btn.getAttribute('data-theme'));
-        render();
-      });
-    });
-  }
-
-  async function renderCompete(mainArea, group, round, date){
-    if(round.resting === state.username){
-      mainArea.innerHTML =
-        '<h2 class="page-title">Today\'s challenge</h2>' +
-        '<p class="page-sub">Odd number of players today — you\'re sitting this round out.</p>' +
-        '<div class="ticket"><div class="resting-card">No opponent for you today. You\'ll be back in the mix for the next round. In the meantime, head to the Vote tab to judge everyone else\'s matchups.</div></div>';
-      return;
-    }
-    var pair = round.pairs.find(function(p){ return p.users.indexOf(state.username) !== -1; });
-    if(!pair){
-      mainArea.innerHTML = '<div class="empty-state">You\'re not in today\'s round yet. Ask a friend to invite you, or check back tomorrow.</div>';
-      return;
-    }
-    var opponent = pair.users.find(function(u){ return u !== state.username; });
-    var mySub = await getSubmission(state.groupCode, date, state.username);
-    var oppSub = await getSubmission(state.groupCode, date, opponent);
-
-    mainArea.innerHTML =
-      '<h2 class="page-title">Today\'s challenge</h2>' +
-      '<p class="page-sub">A fresh prompt lands here every 24 hours.</p>' +
-      '<div class="ticket">' +
-        '<div class="ticket-row">' +
-          '<div class="vs-pill">You vs <b>'+esc(opponent)+'</b></div>' +
-          '<div class="countdown" id="countdown">--:--:--</div>' +
-        '</div>' +
-        '<div class="prompt-text">'+esc(pair.prompt)+'</div>' +
-        '<div id="uploadArea"></div>' +
-      '</div>';
-
-    startCountdown();
-
-    var uploadArea = document.getElementById('uploadArea');
-    if(mySub){
-      uploadArea.innerHTML =
-        '<div class="submitted-wrap">' +
-          '<img class="submitted-img" src="'+mySub.dataUrl+'" />' +
-          '<div class="status-line good">Submitted!</div>' +
-          '<div class="status-line">'+(oppSub ? esc(opponent)+' has submitted too — head to Vote to see it judged.' : 'Waiting on '+esc(opponent)+' to submit theirs.')+'</div>' +
-        '</div>';
-    } else {
-      uploadArea.innerHTML =
-        '<label class="dropzone" id="dropzone">' +
-          '<div class="big">Upload your photo</div>' +
-          'Click to choose a file' +
-          '<input type="file" accept="image/*" id="fileInput" />' +
-        '</label>';
-      document.getElementById('fileInput').addEventListener('change', async function(e){
-        var file = e.target.files[0];
-        if(!file) return;
-        var dz = document.getElementById('dropzone');
-        dz.innerHTML = '<div class="big">Uploading…</div>';
-        try{
-          var dataUrl = await resizeImage(file);
-          await setSubmission(state.groupCode, date, state.username, dataUrl);
-          render();
-        }catch(err){
-          dz.innerHTML = '<div class="big">Something went wrong — try a different image.</div>';
-        }
-      });
-    }
-  }
-
-  var countdownTimer = null;
-  function startCountdown(){
-    if(countdownTimer) clearInterval(countdownTimer);
-    function tick(){
-      var el = document.getElementById('countdown');
-      if(!el){ clearInterval(countdownTimer); return; }
-      var ms = msUntilMidnight();
-      var h = Math.floor(ms / 3600000);
-      var m = Math.floor((ms % 3600000) / 60000);
-      var s = Math.floor((ms % 60000) / 1000);
-      el.textContent = String(h).padStart(2,'0')+':'+String(m).padStart(2,'0')+':'+String(s).padStart(2,'0')+' left';
-    }
-    tick();
-    countdownTimer = setInterval(tick, 1000);
-  }
-
-  var collapsedPairs = {};   // "date_pairId" -> true/false, kept in memory only (per-browser UI state)
-  var commentDrafts = {};    // "date_pairId" -> in-progress, unsent comment text
-
-  async function renderVote(mainArea, group, round, date){
-    mainArea.innerHTML = '<h2 class="page-title">Vote</h2><p class="page-sub">Pick your favorite from each matchup.</p><div class="loading">Loading matchups…</div>';
-
-    // Past days' matchups, oldest first — shown collapsed above today's, like scrolling up through a chat.
-    var historyItems = [];
-    try{
-      var roundsSnap = await groupRef(state.groupCode).child('rounds').once('value');
-      var allRounds = roundsSnap.val() || {};
-      var pastDates = Object.keys(allRounds).filter(function(d){ return d < date; }).sort();
-      for(var pd=0; pd<pastDates.length; pd++){
-        var pdate = pastDates[pd];
-        var pround = allRounds[pdate];
-        if(!pround || !pround.pairs) continue;
-        for(var pp=0; pp<pround.pairs.length; pp++){
-          var ppair = pround.pairs[pp];
-          var pSubA = await getSubmission(state.groupCode, pdate, ppair.users[0]);
-          var pSubB = await getSubmission(state.groupCode, pdate, ppair.users[1]);
-          if(!pSubA || !pSubB) continue;
-          var pComments = await getComments(state.groupCode, pdate, ppair.id);
-          historyItems.push({ date: pdate, pair: ppair, subA: pSubA, subB: pSubB, comments: pComments });
-        }
-      }
-    }catch(e){}
-
-    // Today's matchups you can actually vote on.
-    var votable = [];
-    for(var i=0;i<round.pairs.length;i++){
-      var pair = round.pairs[i];
-      if(pair.users.indexOf(state.username) !== -1) continue; // can't vote on own matchup
-      var subA = await getSubmission(state.groupCode, date, pair.users[0]);
-      var subB = await getSubmission(state.groupCode, date, pair.users[1]);
-      if(subA && subB){
-        var comments = await getComments(state.groupCode, date, pair.id);
-        votable.push({ date: date, pair: pair, subA: subA, subB: subB, comments: comments });
-      }
-    }
-
-    if(historyItems.length === 0 && votable.length === 0){
-      mainArea.innerHTML = '<h2 class="page-title">Vote</h2><p class="page-sub">Pick your favorite from each matchup.</p>' +
-        '<div class="empty-state">No matchups ready to judge yet. Once two players outside your own matchup have both submitted photos, they\'ll show up here.</div>';
-      return;
-    }
-
-    var myVotes = await getVoteMap(state.groupCode, date, state.username);
-
-    mainArea.innerHTML = '<h2 class="page-title">Vote</h2><p class="page-sub">Pick your favorite from each matchup. Older matchups are collapsed above — click one to reopen it.</p><div id="matchList"></div>';
-    var matchList = document.getElementById('matchList');
-
-    function buildMatchupCard(container, item, opts){
-      var pair = item.pair;
-      var key = item.date + '_' + pair.id;
-      var isPast = !opts.interactive;
-      var isCollapsed = collapsedPairs.hasOwnProperty(key) ? collapsedPairs[key] : opts.defaultCollapsed;
-      var card = document.createElement('div');
-      card.className = 'matchup' + (isCollapsed ? ' collapsed' : '') + (isPast ? ' past' : '');
-      card.setAttribute('data-key', key);
-
-      var dateLabel = isPast ? '<span class="date-tag">'+esc(formatDateLabel(item.date))+'</span>' : '';
-
-      var commentsHtml = item.comments.length ? item.comments.map(function(c){
-        return '<div class="comment"><span class="c-name">'+esc(c.username)+'</span><span class="c-text">'+esc(c.text)+'</span></div>';
-      }).join('') : '<div class="no-comments">No comments yet.</div>';
-
-      card.innerHTML =
-        '<div class="matchup-header">' +
-          '<div class="matchup-prompt">'+dateLabel+esc(pair.prompt)+'</div>' +
-          '<button class="collapse-btn" title="Collapse">⌄</button>' +
-        '</div>' +
-        '<div class="collapsed-pill">' +
-          dateLabel +
-          '<span class="cp-prompt">'+esc(pair.prompt)+'</span>' +
-          '<span class="cp-users">'+esc(pair.users[0])+' vs '+esc(pair.users[1])+'</span>' +
-          '<span class="cp-comments">💬 '+item.comments.length+'</span>' +
-        '</div>' +
-        '<div class="full-body">' +
-          '<div class="diptych'+(isPast?' readonly':'')+'">' +
-            '<div class="half" data-user="'+esc(pair.users[0])+'"><img src="'+item.subA.dataUrl+'"/><div class="name-tag">'+esc(pair.users[0])+'</div></div>' +
-            '<div class="vs-badge">VS</div>' +
-            '<div class="half" data-user="'+esc(pair.users[1])+'"><img src="'+item.subB.dataUrl+'"/><div class="name-tag">'+esc(pair.users[1])+'</div></div>' +
-          '</div>' +
-          '<div class="tally-row" id="tally-'+key+'"></div>' +
-          '<div class="comments">' +
-            '<div class="comment-list" id="comments-'+key+'">'+commentsHtml+'</div>' +
-            '<form class="comment-form" id="commentForm-'+key+'">' +
-              '<input type="text" maxlength="200" placeholder="Leave a comment…" value="'+esc(commentDrafts[key]||'')+'" />' +
-              '<button type="submit">Send</button>' +
-            '</form>' +
-          '</div>' +
-        '</div>';
-      container.appendChild(card);
-
-      function setCollapsed(val){
-        collapsedPairs[key] = val;
-        card.classList.toggle('collapsed', val);
-      }
-      card.querySelector('.collapse-btn').addEventListener('click', function(e){
-        e.stopPropagation();
-        setCollapsed(!card.classList.contains('collapsed'));
-      });
-      card.querySelector('.collapsed-pill').addEventListener('click', function(){
-        setCollapsed(false);
-      });
-
-      function markVoted(choice){
-        card.querySelectorAll('.half').forEach(function(h){
-          var isChoice = h.getAttribute('data-user') === choice;
-          h.classList.toggle('voted', isChoice);
-          var existingCheck = h.querySelector('.check');
-          if(isChoice && !existingCheck){
-            var chk = document.createElement('div');
-            chk.className = 'check';
-            chk.textContent = '✓';
-            h.appendChild(chk);
-          } else if(!isChoice && existingCheck){
-            existingCheck.remove();
-          }
-        });
-      }
-      if(opts.votedChoice) markVoted(opts.votedChoice);
-
-      async function refreshTally(){
-        var counts = await tallyPair(state.groupCode, item.date, pair);
-        var total = pair.users.reduce(function(s,u){ return s + (counts[u]||0); }, 0);
-        var tallyEl = document.getElementById('tally-'+key);
-        if(!tallyEl) return;
-        tallyEl.innerHTML = pair.users.map(function(u){
-          var c = counts[u] || 0;
-          var pct = total > 0 ? Math.round((c/total)*100) : 0;
-          return '<div class="tally-bar"><div class="bar-track"><div class="bar-fill" style="width:'+pct+'%"></div></div><div class="bar-label">'+esc(u)+' · '+c+' vote'+(c===1?'':'s')+'</div></div>';
-        }).join('');
-      }
-      if(isPast || opts.votedChoice) refreshTally();
-
-      if(opts.interactive){
-        card.querySelectorAll('.half').forEach(function(h){
-          h.addEventListener('click', async function(){
-            var choice = h.getAttribute('data-user');
-            markVoted(choice);
-            await castVote(state.groupCode, item.date, state.username, pair.id, choice);
-            refreshTally();
-          });
-        });
-      }
-
-      var commentInput = card.querySelector('.comment-form input');
-      commentInput.addEventListener('input', function(){
-        commentDrafts[key] = commentInput.value;
-      });
-      card.querySelector('.comment-form').addEventListener('submit', async function(e){
-        e.preventDefault();
-        var text = commentInput.value.trim();
-        if(!text) return;
-        commentInput.value = '';
-        delete commentDrafts[key];
-        await addComment(state.groupCode, item.date, pair.id, state.username, text);
-        // the realtime group listener will re-render this card with the new comment.
-      });
-    }
-
-    historyItems.forEach(function(item){
-      buildMatchupCard(matchList, item, { interactive:false, votedChoice:null, defaultCollapsed:true });
-    });
-
-    if(votable.length > 0){
-      var todayHeader = document.createElement('div');
-      todayHeader.className = 'today-divider';
-      todayHeader.textContent = "Today's matchups";
-      matchList.appendChild(todayHeader);
-    }
-
-    votable.forEach(function(item){
-      buildMatchupCard(matchList, item, { interactive:true, votedChoice: myVotes[item.pair.id] || null, defaultCollapsed:false });
-    });
-  }
-
-  // ---------- boot ----------
-  async function boot(){
-    ensureDevBadge();
-    if(!isConfigured()){
-      state.screen = 'setup';
-      render();
-      return;
-    }
-    try{
-      firebase.initializeApp(firebaseConfig);
-      db = firebase.database();
-    }catch(e){
-      state.screen = 'setup';
-      render();
-      return;
-    }
-
-    var session = getSession();
-    if(session && session.username && session.groupCode){
-      try{
-        var g = await getGroup(session.groupCode);
-        if(g){
-          state.username = session.username;
-          state.groupCode = session.groupCode;
-          attachGroupListener(session.groupCode);
-          state.screen = 'app';
-          render();
-          return;
-        }
-      }catch(e){}
-    }
-    state.screen = 'auth';
-    render();
-  }
-
-  boot();
-})();
+function sendMessage() {
+  const draftEl = document.getElementById("chat-draft");
+  const text = draftEl.value.trim();
+  if (!text || wordCount(text) > CONFIG.MAX_WORDS_PER_MESSAGE) return;
+  const raw = storGet(chatKey());
+  const messages = raw ? JSON.parse(raw) : [];
+  messages.push({ from: myId, text, ts: Date.now() });
+  storSet(chatKey(), JSON.stringify(messages));
+  draftEl.value = "";
+  onDraftChange();
+  renderChat();
+}
 </script>
 </body>
 </html>
