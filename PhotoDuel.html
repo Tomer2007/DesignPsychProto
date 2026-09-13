@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Snapduel</title>
+<title>PhotoDuel</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,500&family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <!-- Firebase (free tier) - provides shared storage so friends can see each other's data -->
@@ -717,7 +717,7 @@
   ];
 
   var root = document.getElementById('root');
-  var db = null;
+  var db = null; 
 
   // ---------- TEST MODE: simulated day offset ----------
   // Lets you press ] / [ to jump the app's notion of "today" forward/back a day,
@@ -1203,7 +1203,7 @@
     var isCreate = state.authMode === 'create';
     root.innerHTML =
       '<div class="auth-wrap"><div class="auth-card">' +
-        '<div class="auth-brand"><span class="dot"></span><h1>Snapduel</h1></div>' +
+        '<div class="auth-brand"><span class="dot"></span><h1>Photo Duel</h1></div>' +
         '<p class="auth-sub">A daily photo challenge for your friend group. Get paired up, snap a photo before time runs out, then vote on everyone else\'s matchups.</p>' +
         '<div class="seg">' +
           '<button data-mode="create" class="'+(isCreate?'active':'')+'">New group</button>' +

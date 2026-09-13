@@ -3,312 +3,422 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Look Up</title>
+<title>Touchbase</title>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 
 <!-- =====================================================================
-     VISUAL CONFIG — the ONE place to change how this looks.
-     Edit these CSS variables only; nothing else in the file should
-     hardcode a color, font, or radius.
+     VISUAL CONFIG lives in two places, both near the top of this file:
+     1. PALETTES in the <script> below (full color themes users pick from)
+     2. The CSS rules here, which reference palette CSS variables (--bg-from
+        etc.) rather than hardcoded colors. Change a palette's values or
+        add a new palette object — nothing else needs touching.
      ===================================================================== -->
 <style>
-  :root {
-    --board: #C9A876;
-    --paper: #EFE7D6;
-    --paper-edge: #D8CBAA;
-    --ink: #26333A;
-    --ink-soft: #5B6A70;
-    --accent: #B5651D;
-    --accent-soft: #E7B27A;
-    --sage: #7C9885;
-    --danger: #A9432E;
-    --white: #FFF9EE;
-    --radius: 10px;
-    --font-display: 'Caveat', cursive;
-    --font-body: 'Inter', system-ui, sans-serif;
-  }
-
   @import url('https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&family=Inter:wght@400;500;600;700&display=swap');
 
+  :root {
+    --font-display: 'Caveat', cursive;
+    --font-body: 'Inter', system-ui, sans-serif;
+    --radius: 16px;
+  }
   * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
   body {
-    margin: 0; font-family: var(--font-body); color: var(--ink);
-    min-height: 100vh;
-    background:
-      radial-gradient(circle at 1px 1px, rgba(0,0,0,0.13) 1px, transparent 0) 0 0/16px 16px,
-      var(--board);
-    display: flex; justify-content: center; padding: 24px 16px;
+    font-family: var(--font-body); color: var(--ink);
+    min-height: 100vh; display: flex; justify-content: center;
+    background: linear-gradient(180deg, var(--bg-from) 0%, var(--bg-to) 100%);
+    transition: background 0.3s ease;
   }
-  .shell { width: 100%; max-width: 480px; }
-  .screen { display: none; }
-  .screen.active { display: block; }
 
-  h1.h1 { font-family: var(--font-display); font-weight: 700; font-size: 2.4rem; margin: 0 0 4px; }
-  h2.h2 { font-family: var(--font-display); font-weight: 700; font-size: 1.7rem; margin: 0 0 10px; }
-  .sub { color: var(--ink-soft); font-size: 0.92rem; margin: 0 0 18px; line-height: 1.4; }
-
-  .card {
-    background: var(--paper); border: 1px solid var(--paper-edge); border-radius: var(--radius);
-    padding: 20px; box-shadow: 0 6px 0 var(--paper-edge), 0 10px 18px rgba(0,0,0,0.18);
-    transform: rotate(-1deg); margin-bottom: 18px;
+  /* Phone-proportioned frame so it stays consistent & readable on any screen */
+  .phone {
+    width: 100%; max-width: 400px; height: 100vh;
+    background: linear-gradient(180deg, var(--bg-from) 0%, var(--bg-to) 100%);
+    position: relative; overflow: hidden;
+    display: flex; flex-direction: column;
   }
-  .card.flat { transform: none; }
-  .pin { width: 12px; height: 12px; border-radius: 50%; background: var(--accent); display: inline-block;
-         box-shadow: 0 2px 3px rgba(0,0,0,0.35); margin-bottom: 8px; }
+  .screen { display: none; flex: 1; flex-direction: column; padding: 28px 22px; min-height: 0; overflow-y: auto; }
+  .screen.active { display: flex; }
+  /* Chat screen: header + composer stay put, only the message list scrolls */
+  #screen-chat.active { overflow-y: hidden; }
+  .menu-scroll { flex: 1; min-height: 0; overflow-y: auto; }
 
-  .btn { font-family: var(--font-body); font-weight: 600; font-size: 0.95rem; border: none; border-radius: var(--radius);
-         padding: 12px 18px; cursor: pointer; width: 100%; }
-  .btn:active { transform: translateY(1px); }
+  /* ---------- shared bits ---------- */
+  .star {
+    position: absolute; font-size: 2rem; line-height: 1; color: var(--accent-soft);
+    filter: drop-shadow(0 2px 2px rgba(0,0,0,0.15));
+  }
+  .btn {
+    font-family: var(--font-body); font-weight: 700; font-size: 0.95rem; border: none;
+    border-radius: 999px; padding: 14px 18px; cursor: pointer; width: 100%;
+  }
   .btn:disabled { opacity: 0.5; cursor: not-allowed; }
-  .btn.primary { background: var(--accent); color: var(--white); }
-  .btn.secondary { background: var(--sage); color: var(--white); }
+  .btn.pink { background: var(--accent); color: var(--on-accent); }
+  .btn.blue { background: var(--accent2); color: var(--on-accent2); }
+  .btn.google {
+    background: var(--paper); color: var(--ink); display: flex; align-items: center;
+    justify-content: center; gap: 10px; box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+  }
   .btn.ghost { background: transparent; color: var(--ink); border: 1.5px dashed var(--ink-soft); }
   .row { display: flex; gap: 10px; }
   .row > * { flex: 1; }
+  .link-btn { background: none; border: none; color: var(--ink-soft); text-decoration: underline; cursor: pointer; font-size: 0.8rem; padding: 0; }
+
+  .white-card {
+    background: var(--paper); border-radius: 18px; padding: 18px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.12); width: 100%;
+  }
 
   .field { margin-bottom: 14px; }
-  .label { display: block; font-size: 0.8rem; font-weight: 600; color: var(--ink-soft); margin-bottom: 5px; }
+  .label { display: block; font-size: 0.78rem; font-weight: 600; color: var(--ink-soft); margin-bottom: 5px; }
   .input, textarea.input {
-    width: 100%; font-family: var(--font-body); font-size: 0.95rem; padding: 10px 12px; border-radius: 8px;
-    border: 1.5px solid var(--paper-edge); background: var(--white); color: var(--ink);
+    width: 100%; font-family: var(--font-body); font-size: 0.95rem; padding: 10px 12px; border-radius: 10px;
+    border: 1.5px solid var(--paper-edge); background: var(--input-bg); color: var(--ink);
   }
   textarea.input { resize: vertical; min-height: 60px; }
+  .error { background: #f6dcd3; color: var(--danger); border-radius: 8px; padding: 8px 12px; font-size: 0.85rem; margin-bottom: 12px; }
+  .banner { background: rgba(255,255,255,0.5); border: 1px dashed var(--accent); border-radius: 8px; padding: 10px 12px; font-size: 0.78rem; margin-bottom: 14px; }
 
-  .person { background: var(--white); border: 1px solid var(--paper-edge); border-radius: var(--radius);
-            padding: 14px; margin-bottom: 12px; cursor: pointer; display: flex; gap: 12px; align-items: center; }
-  .person:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
-  .avatar { width: 46px; height: 46px; border-radius: 50%; object-fit: cover; flex-shrink: 0; border: 2px solid var(--paper-edge); }
-  .avatar.fallback { display: flex; align-items: center; justify-content: center; font-family: var(--font-display);
-                      font-size: 1.3rem; font-weight: 700; color: var(--white); }
+  /* ---------- SIGN IN ---------- */
+  #screen-signin { justify-content: space-between; text-align: center; padding-top: 60px; }
+  .signin-title { font-size: 1.6rem; font-weight: 700; margin-bottom: 60px; }
+  .signin-heading { font-weight: 700; font-size: 1.1rem; margin-bottom: 4px; }
+  .signin-sub { color: var(--ink-soft-on-bg); font-size: 0.85rem; margin-bottom: 28px; }
+  .signin-fine { font-size: 0.7rem; color: var(--ink-soft-on-bg); margin-top: 16px; line-height: 1.4; }
 
-  .topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
-  .code-badge { font-family: var(--font-display); font-weight: 700; font-size: 1.1rem; background: var(--accent-soft);
-                padding: 2px 10px; border-radius: 6px; }
+  /* ---------- WELCOME ---------- */
+  #screen-welcome { align-items: center; text-align: center; padding-top: 40px; }
+  .welcome-title {
+    font-family: var(--font-display); font-weight: 700; font-size: 3rem; color: #fff;
+    -webkit-text-stroke: 1.5px var(--ink); text-shadow: 2px 2px 0 rgba(0,0,0,0.15);
+    margin-bottom: 20px;
+  }
+  .welcome-circle {
+    width: 190px; height: 190px; border-radius: 50%; background: var(--paper);
+    display: flex; align-items: center; justify-content: center; padding: 20px;
+    font-weight: 700; color: var(--ink); font-size: 0.95rem; margin-bottom: 22px;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.12);
+  }
+  .rules-box {
+    text-align: left; font-size: 0.78rem; line-height: 1.55; color: var(--ink-soft);
+    max-height: 220px; overflow-y: auto; margin-bottom: 22px;
+  }
+  .rules-box b { color: var(--ink); }
 
-  .chat-window { background: var(--white); border-radius: var(--radius); border: 1px solid var(--paper-edge);
-                 height: 360px; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
-  .bubble { max-width: 78%; padding: 8px 12px; border-radius: 14px; font-size: 0.92rem; line-height: 1.35; }
-  .bubble.mine { align-self: flex-end; background: var(--accent); color: var(--white); border-bottom-right-radius: 4px; }
+  /* ---------- ACCOUNT SETUP ---------- */
+  #screen-profile { align-items: center; padding-top: 44px; }
+  .profile-pic-big {
+    width: 150px; height: 150px; border-radius: 50%; background: var(--paper);
+    display: flex; align-items: center; justify-content: center; overflow: hidden;
+    cursor: pointer; box-shadow: 0 6px 18px rgba(0,0,0,0.12); margin-bottom: 18px;
+    position: relative;
+  }
+  .profile-pic-big img { width: 100%; height: 100%; object-fit: cover; }
+  .profile-pic-big .icon-fallback { font-size: 3.2rem; color: var(--ink-soft); }
+  .username-pill {
+    background: var(--paper); border-radius: 999px; padding: 10px 20px; margin-bottom: 26px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1); width: 80%;
+  }
+  .username-pill input {
+    border: none; background: transparent; text-align: center; width: 100%;
+    font-weight: 700; color: var(--accent); font-size: 1rem; outline: none;
+  }
+  .palette-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-bottom: 16px; }
+  .palette-swatch {
+    aspect-ratio: 1; border-radius: 50%; cursor: pointer; border: 3px solid transparent;
+    background: linear-gradient(135deg, var(--sw-from), var(--sw-to));
+  }
+  .palette-swatch.selected { border-color: var(--ink); }
+  .palette-name { font-size: 0.68rem; text-align: center; color: var(--ink-soft); margin-top: -8px; }
+
+  /* ---------- MENU ---------- */
+  #screen-menu { padding: 18px 16px; }
+  .menu-topbar { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+  .menu-back { background: none; border: none; font-size: 1.2rem; cursor: pointer; color: var(--ink); }
+  .code-pill {
+    flex: 1; background: var(--accent2); color: var(--on-accent2); border-radius: 999px;
+    padding: 10px 16px; font-weight: 700; font-size: 0.9rem; text-align: center;
+  }
+  .icon-btn {
+    background: var(--paper); border: none; border-radius: 50%; width: 38px; height: 38px;
+    display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 1rem;
+  }
+  .search-bar {
+    background: var(--paper); border-radius: 12px; padding: 10px 14px; margin-bottom: 14px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .search-bar input { border: none; background: transparent; outline: none; flex: 1; font-family: var(--font-body); color: var(--ink); }
+  .person {
+    background: var(--paper); border-radius: 14px; padding: 12px; margin-bottom: 10px;
+    display: flex; gap: 12px; align-items: center; cursor: pointer;
+  }
+  .avatar { width: 48px; height: 48px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
+  .avatar.fallback { display: flex; align-items: center; justify-content: center; font-weight: 700; color: #fff; }
+  .person-mid { flex: 1; min-width: 0; }
+  .person-name-row { display: flex; justify-content: space-between; align-items: baseline; }
+  .person-name { font-weight: 700; font-size: 0.95rem; }
+  .person-time { font-size: 0.7rem; color: var(--ink-soft); }
+  .person-preview { font-size: 0.8rem; color: var(--ink-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; gap: 5px; }
+  .dot-online { width: 8px; height: 8px; border-radius: 50%; background: #4CAF50; flex-shrink: 0; }
+  .menu-status { color: var(--ink-soft); font-size: 0.85rem; text-align: center; margin-top: 20px; }
+
+  /* ---------- CHAT ---------- */
+  #screen-chat { padding: 16px; }
+  .chat-topbar { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+  .chat-window {
+    flex: 1; min-height: 0; border-radius: 16px; padding: 14px; display: flex; flex-direction: column;
+    gap: 8px; margin-bottom: 12px; overflow-y: auto;
+    background: linear-gradient(180deg, var(--accent-soft) 0%, var(--chat-fade) 100%);
+  }
+  .chat-topbar, #chat-composer { flex: 0 0 auto; gap: 10px; margin-bottom: 10px;   }
+
+  /* ---------- MEETUP (out-of-words) COMPOSER ---------- */
+  .meetup-sentence {
+    font-size: 0.85rem; line-height: 1.9; color: var(--ink); margin-bottom: 10px;
+  }
+  .mu-input {
+    border: none; border-bottom: 2px solid var(--ink-soft); background: transparent;
+    font-family: var(--font-body); font-weight: 700; color: var(--ink); text-align: center;
+    padding: 2px 4px; font-size: 0.85rem; outline: none; margin: 0 2px;
+  }
+  .mu-input.loc { width: 100px; }
+  .mu-input.day { width: 34px; }
+  .mu-input.month { width: 100px; }
+  .mu-input.time { width: 90px; }
+  .bubble { max-width: 76%; padding: 9px 13px; border-radius: 16px; font-size: 0.9rem; line-height: 1.35; }
+  .bubble.mine { align-self: flex-end; background: var(--accent); color: var(--on-accent); border-bottom-right-radius: 4px; }
   .bubble.theirs { align-self: flex-start; background: var(--paper); color: var(--ink); border-bottom-left-radius: 4px; }
   .empty { text-align: center; color: var(--ink-soft); font-size: 0.85rem; margin: auto; }
-
-  .wordcount { font-size: 0.75rem; color: var(--ink-soft); text-align: right; margin: -8px 0 10px; }
+  .wordcount { font-size: 0.72rem; color: var(--ink-soft); text-align: right; margin: -8px 0 -8px; }
   .wordcount.over { color: var(--danger); font-weight: 700; }
 
-  .link-btn { background: none; border: none; color: var(--ink-soft); text-decoration: underline; cursor: pointer; font-size: 0.85rem; padding: 0; }
-  .swatch { width: 30px; height: 30px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; }
-  .swatch.selected { border-color: var(--ink); }
-  .error { background: #F6DCD3; color: var(--danger); border-radius: 8px; padding: 8px 12px; font-size: 0.85rem; margin-bottom: 12px; }
-  .banner { background: #FDF0D5; border: 1px dashed var(--accent); border-radius: 8px; padding: 10px 12px; font-size: 0.8rem; margin-bottom: 14px; }
+  /* ---------- MODAL ---------- */
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.4); display: none;
+    align-items: center; justify-content: center; z-index: 10;
+  }
+  .modal-overlay.active { display: flex; }
+  .modal-box { background: var(--paper); border-radius: 16px; padding: 22px; width: 85%; max-width: 320px; }
 </style>
 </head>
 <body>
-<div class="shell">
+<div class="phone">
 
   <!-- SIGN IN -->
   <section id="screen-signin" class="screen active">
-    <div class="card">
-      <span class="pin"></span>
-      <h1 class="h1">Look Up</h1>
-      <p class="sub">Sign in with Google to continue. This keeps one profile per person, so nobody can dodge the word limit by making a new account.</p>
-      <div id="g_id_button_container" style="margin-bottom:10px;"></div>
+    <div>
+      <div class="signin-title">Touchbase</div>
+      <div class="signin-heading">Sign in</div>
+      <div class="signin-sub">Continue with the Google account you'll use for this group.</div>
+    </div>
+    <div>
+      <div id="g_id_button_container"></div>
       <div id="dev-banner" class="banner" style="display:none;"></div>
-      <button id="dev-bypass-btn" class="btn ghost" style="display:none;" onclick="devBypassSignIn()">Continue without Google (dev mode)</button>
+      <button id="dev-bypass-btn" class="btn ghost" style="display:none; margin-top:10px;" onclick="devBypassSignIn()">Continue without Google (dev mode)</button>
+      <div class="signin-fine">By continuing you agree this app keeps one profile per Google account, so word limits can't be reset by re-signing up.</div>
     </div>
   </section>
 
-  <!-- RULES -->
-  <section id="screen-rules" class="screen">
-    <div class="card">
-      <span class="pin"></span>
-      <h1 class="h1">Look Up</h1>
-      <p class="sub">A tiny experiment in meeting the people already around you.</p>
-      <h2 class="h2" style="font-size:1.2rem;">How it works</h2>
-      <ul style="color:var(--ink-soft); font-size:0.9rem; line-height:1.6; padding-left:18px;">
-        <li>Join a group with a shared code (your class, event, or floor).</li>
-        <li>Make a quick profile: name, photo, color.</li>
-        <li>Browse who else is in the group — just names and photos, nothing else.</li>
-        <li>Send a <strong>short</strong> message — capped at <span id="rules-wordlimit"></span> words.</li>
-        <li>The rest of the conversation happens in person. That's the point.</li>
-      </ul>
-    </div>
-    <button class="btn primary" onclick="goTo('groupChoice')">I'm in — let's set up</button>
-  </section>
-
-  <!-- GROUP CHOICE -->
-  <section id="screen-groupChoice" class="screen">
-    <div class="card">
-      <span class="pin"></span>
-      <h2 class="h2">Find your people</h2>
-      <p class="sub">Create a new group, or join one with a code someone shared with you.</p>
-      <div id="group-error"></div>
-      <div id="group-buttons" class="row">
-        <button class="btn primary" onclick="createGroup()">Create group</button>
-        <button class="btn ghost" onclick="showJoinForm()">Join group</button>
-      </div>
-      <div id="join-form" style="display:none;">
-        <div class="field">
-          <label class="label">Group code</label>
-          <input id="join-code-input" class="input" maxlength="10" placeholder="e.g. 7XQPL" />
-        </div>
-        <div class="row">
-          <button class="btn primary" onclick="joinGroup()">Join</button>
-          <button class="btn ghost" onclick="hideJoinForm()">Back</button>
-        </div>
+  <!-- WELCOME / HOW IT WORKS -->
+  <section id="screen-welcome" class="screen">
+    <span class="star" style="top:30px; right:20px; color:#fff;">★</span>
+    <span class="star" style="top:190px; left:10px; color:#fff; font-size:1.5rem;">★</span>
+    <div class="welcome-title">WELCOME!</div>
+    <div class="welcome-circle">We are Touchbase. Making connections can be simple.</div>
+    <div class="white-card" style="margin-bottom:20px;">
+      <div class="rules-box">
+        <b>How it works</b><br/>
+        Join a group with a shared code. 
+        Make a quick profile. 
+        Introduce yourself to people around you. 
+        You only get <span id="rules-wordlimit"></span> words total to say to each person.
+        Once they're gone, you can only suggest meeting up, so the real conversation happens face to face.
+        <br/><br/>
+        <b>House rules</b><br/>
+        No harassment, hate speech, or discrimination of any kind. No sharing others'
+        personal info without consent. Breaking these rules can get you removed from a group.
       </div>
     </div>
+    <div style="width:100%;">
+      <button class="btn pink" style="margin-bottom:10px;" onclick="createGroup()">Create group</button>
+      <button class="btn blue" onclick="openJoinModal()">Join group</button>
+    </div>
   </section>
 
-  <!-- PROFILE -->
+  <!-- ACCOUNT SETUP -->
   <section id="screen-profile" class="screen">
-    <div class="card">
-      <span class="pin"></span>
-      <h2 class="h2">Set up your profile</h2>
-      <p class="sub">Just a name, a photo, and a color — that's all anyone will see.</p>
-      <div class="field">
-        <label class="label">Name</label>
-        <input id="profile-name" class="input" maxlength="30" placeholder="What should people call you?" oninput="onProfileFieldChange()" />
-      </div>
-      <div class="field">
-        <label class="label">Profile picture (optional)</label>
-        <div style="display:flex; align-items:center; gap:12px;">
-          <img id="profile-pic-preview" class="avatar" style="width:54px;height:54px;display:none;" />
-          <div id="profile-pic-fallback" class="avatar fallback" style="width:54px;height:54px;">?</div>
-          <input type="file" accept="image/*" onchange="handleProfileFile(event)" />
-        </div>
-      </div>
-      <div class="field">
-        <label class="label">Background color</label>
-        <div id="swatches" style="display:flex; gap:8px;"></div>
-      </div>
+    <div class="profile-pic-big" onclick="document.getElementById('profile-file-input').click()">
+      <img id="profile-pic-preview" style="display:none;" />
+      <span id="profile-pic-icon" class="icon-fallback">🙂</span>
     </div>
-    <button id="profile-submit" class="btn primary" disabled onclick="submitProfile()">Enter the group</button>
+    <input type="file" id="profile-file-input" accept="image/*" style="display:none;" onchange="handleProfileFile(event)" />
+    <div class="username-pill">
+      <input id="profile-name" placeholder="@username" maxlength="30" oninput="onProfileFieldChange()" />
+    </div>
+    <div class="white-card">
+      <div class="label" style="margin-bottom:10px;">Choose a color palette</div>
+      <div id="palette-grid" class="palette-grid"></div>
+      <div id="palette-name" class="palette-name" style="margin-bottom:16px;"></div>
+      <button id="profile-submit" class="btn pink" disabled onclick="submitProfile()">Enter the group</button>
+    </div>
   </section>
 
   <!-- MENU -->
   <section id="screen-menu" class="screen">
-    <div class="topbar">
-      <div>
-        <div style="font-size:0.78rem; color:var(--ink-soft);">Group</div>
-        <span id="menu-code" class="code-badge"></span>
-      </div>
-      <button class="link-btn" onclick="leaveGroup()">Leave group</button>
+    <div class="menu-topbar">
+      <button class="menu-back" onclick="leaveGroup()">←</button>
+      <div class="code-pill">Code: <span id="menu-code"></span></div>
+      <button class="icon-btn" title="Copy invite code" onclick="copyGroupCode()">📋</button>
     </div>
-    <div class="card flat" style="display:flex; align-items:center; gap:12px;">
-      <div id="menu-me-avatar-wrap"></div>
-      <div>
-        <div id="menu-me-name" style="font-weight:700;"></div>
-        <div style="font-size:0.78rem; color:var(--ink-soft);">that's you</div>
-      </div>
+    <div class="search-bar">
+      <span>🔍</span>
+      <input id="menu-search" placeholder="Search" oninput="renderMenu()" />
     </div>
-    <h2 class="h2">Who's here</h2>
-    <div id="menu-status" style="color:var(--ink-soft); font-size:0.9rem;"></div>
-    <div id="menu-list"></div>
+    <div class="menu-scroll">
+      <div id="menu-list"></div>
+      <div id="menu-status" class="menu-status"></div>
+    </div>
   </section>
 
   <!-- CHAT -->
   <section id="screen-chat" class="screen">
-    <div class="topbar">
-      <button class="link-btn" onclick="goTo('menu'); renderMenu();">← Back</button>
-    </div>
-    <div class="card flat" style="display:flex; align-items:center; gap:12px;">
+    <div class="chat-topbar">
+      <button class="menu-back" onclick="goTo('menu'); renderMenu();">←</button>
       <div id="chat-partner-avatar-wrap"></div>
       <div>
         <div id="chat-partner-name" style="font-weight:700;"></div>
-        <div style="font-size:0.75rem; color:var(--ink-soft);"><span id="chat-wordlimit-label"></span> words max per message.</div>
+        <div id="chat-budget-label" style="font-size:0.7rem; color:var(--ink-soft);"></div>
       </div>
     </div>
     <div id="chat-window" class="chat-window"></div>
-    <textarea id="chat-draft" class="input" placeholder="Type a short message…" oninput="onDraftChange()"></textarea>
-    <div id="chat-wordcount" class="wordcount">0 / 0 words</div>
-    <button id="chat-send-btn" class="btn primary" disabled onclick="sendMessage()">Send</button>
+    <div id="chat-composer"></div>
   </section>
 
 </div>
 
+<!-- JOIN GROUP MODAL -->
+<div id="join-modal" class="modal-overlay">
+  <div class="modal-box">
+    <div class="label" style="margin-bottom:8px;">Enter group code</div>
+    <input id="join-code-input" class="input" maxlength="10" placeholder="e.g. 7XQPL" style="margin-bottom:10px;" />
+    <div id="join-error"></div>
+    <div class="row">
+      <button class="btn pink" onclick="joinGroup()">Join</button>
+      <button class="btn ghost" onclick="closeJoinModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
 <script>
 /* =========================================================================
-   APP CONFIG — the ONE place to change behavior & Google sign-in setup.
+   APP CONFIG
    ========================================================================= */
 const CONFIG = {
-  MAX_WORDS_PER_MESSAGE: 12,
+  // Total words each person gets to send to each other person, across the whole
+  // conversation (not per message). Spending it fast in one message or slow
+  // across several both work — once it hits 0 they can only propose meeting up.
+  WORD_BUDGET: 12,
   POLL_INTERVAL_MS: 3000,
   GROUP_CODE_LENGTH: 5,
-  BG_SWATCHES: ["#E7B27A", "#7C9885", "#B5651D", "#5B6A70", "#F2C14E", "#26333A"],
 
-  // --- Google Sign-In ---
-  // 1. Create an OAuth Client ID (type: Web application) at https://console.cloud.google.com/apis/credentials
-  // 2. Add "http://localhost:5500" (or whatever port VS Code Live Server uses) under Authorized JavaScript origins.
-  // 3. Paste the client ID below.
-  GOOGLE_CLIENT_ID: "YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com",
-  // If true and no real client ID is set, a "dev bypass" button appears so you can test locally
-  // without setting up OAuth yet. Set to false once GOOGLE_CLIENT_ID is real, to enforce real sign-in.
+  // Google Sign-In: OAuth Client ID from console.cloud.google.com/apis/credentials.
+  // Add your Live Server origin (e.g. http://localhost:5500) as an authorized JS origin.
+  GOOGLE_CLIENT_ID: "940015750289-vdgfrefh40r3fkqm9b6postoq48coplc.apps.googleusercontent.com",
   ALLOW_DEV_BYPASS: true,
 };
 
-document.getElementById("rules-wordlimit").textContent = CONFIG.MAX_WORDS_PER_MESSAGE;
-document.getElementById("chat-wordlimit-label").textContent = CONFIG.MAX_WORDS_PER_MESSAGE;
+// Full color themes. First one is the default shown in the reference designs.
+// Add more by copying an object here — nothing else in the code needs editing.
+const PALETTES = [
+  { key: "blush", name: "Blush", isDark: false,
+    bgFrom: "#cbb2e0", bgTo: "#eef1fb", paper: "#ffffff", paperEdge: "#e3d9f5",
+    ink: "#33324a", inkSoft: "#7a7a94", accent: "#caa0e0", onAccent: "#3a2a4a",
+    accent2: "#8fb3ea", onAccent2: "#20304f", accentSoft: "#cbb2e0", sage: "#8fb3ea", danger: "#c0503c" },
+  { key: "sky", name: "Sky", isDark: false,
+    bgFrom: "#a9d6f5", bgTo: "#eef8ff", paper: "#ffffff", paperEdge: "#d6ecfb",
+    ink: "#233246", inkSoft: "#5f7285", accent: "#4f8fd1", onAccent: "#ffffff",
+    accent2: "#8fd1c8", onAccent2: "#1c3a35", accentSoft: "#a9d6f5", sage: "#8fd1c8", danger: "#c0503c" },
+  { key: "mint", name: "Mint", isDark: false,
+    bgFrom: "#b7e4c7", bgTo: "#f4fbf6", paper: "#ffffff", paperEdge: "#dcf1e3",
+    ink: "#243b2e", inkSoft: "#5f7d6a", accent: "#5fae83", onAccent: "#ffffff",
+    accent2: "#e0c88f", onAccent2: "#4a3a17", accentSoft: "#b7e4c7", sage: "#5fae83", danger: "#c0503c" },
+  { key: "peach", name: "Peach", isDark: false,
+    bgFrom: "#f7c9a0", bgTo: "#fff3e6", paper: "#ffffff", paperEdge: "#fbe3cc",
+    ink: "#4a2f21", inkSoft: "#8a6a55", accent: "#e08a4c", onAccent: "#ffffff",
+    accent2: "#e0a9c9", onAccent2: "#4a2438", accentSoft: "#f7c9a0", sage: "#e0a9c9", danger: "#a9432e" },
+  { key: "dark", name: "Dark Mode", isDark: true,
+    bgFrom: "#1b1f2a", bgTo: "#10131a", paper: "#232838", paperEdge: "#323a52",
+    ink: "#edeef2", inkSoft: "#9aa0b4", accent: "#7c9cf2", onAccent: "#0e1220",
+    accent2: "#9c7cf2", onAccent2: "#0e1220", accentSoft: "#3a3f5c", sage: "#7c9cf2", danger: "#e0705c" },
+];
+let currentPalette = PALETTES[0];
+
+document.getElementById("rules-wordlimit").textContent = CONFIG.WORD_BUDGET;
+
+function applyPalette(p) {
+  currentPalette = p;
+  const r = document.documentElement.style;
+  r.setProperty("--bg-from", p.bgFrom);
+  r.setProperty("--bg-to", p.bgTo);
+  r.setProperty("--paper", p.paper);
+  r.setProperty("--paper-edge", p.paperEdge);
+  r.setProperty("--ink", p.ink);
+  r.setProperty("--ink-soft", p.inkSoft);
+  r.setProperty("--ink-soft-on-bg", p.isDark ? p.inkSoft : "#4a4a63");
+  r.setProperty("--accent", p.accent);
+  r.setProperty("--on-accent", p.onAccent);
+  r.setProperty("--accent2", p.accent2);
+  r.setProperty("--on-accent2", p.onAccent2);
+  r.setProperty("--accent-soft", p.accentSoft);
+  r.setProperty("--sage", p.sage);
+  r.setProperty("--danger", p.danger);
+  r.setProperty("--input-bg", p.isDark ? "#1b1f2a" : "#ffffff");
+  r.setProperty("--chat-fade", p.isDark ? "#000000" : "#ffffff");
+}
+applyPalette(PALETTES[0]);
 
 /* =========================================================================
-   STORAGE LAYER — currently backed by localStorage so this works as a
-   plain static file with no server. Swap the guts of these three
-   functions to talk to a real backend later without touching the rest
-   of the app.
-   NOTE: localStorage is per-browser. To simulate multiple people while
-   testing locally, open the site in several tabs (or browsers) — they
-   share localStorage on the same machine and will see each other.
+   STORAGE — localStorage-backed. Same-origin tabs/windows on this machine
+   share it, which is what lets you test multiple "people" locally: sign in
+   with a different Google account per tab (see multi-account fix below),
+   join the same group code, and they'll see each other. Swap these three
+   functions for real API calls later without touching the rest of the app.
    ========================================================================= */
-function storGet(key) {
-  const v = localStorage.getItem(key);
-  return v === null ? null : v;
-}
-function storSet(key, value) {
-  localStorage.setItem(key, value);
-}
+function storGet(key) { return localStorage.getItem(key); }
+function storSet(key, value) { localStorage.setItem(key, value); }
 
 /* =========================================================================
    STATE
    ========================================================================= */
-let currentUser = null;   // {sub, name, email, picture}
-let groupCode = null;
-let myId = null;
-let myProfile = null;
-let activePartner = null; // {id, profile}
-let pollTimer = null;
-let pendingPic = null;
+let currentUser = null, groupCode = null, myId = null, myProfile = null;
+let activePartner = null, pollTimer = null, pendingPic = null, selectedPaletteKey = PALETTES[0].key;
 
 /* =========================================================================
    HELPERS
    ========================================================================= */
 function genCode(len) {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-  let out = "";
-  for (let i = 0; i < len; i++) out += chars[Math.floor(Math.random() * chars.length)];
+  let out = ""; for (let i = 0; i < len; i++) out += chars[Math.floor(Math.random() * chars.length)];
   return out;
 }
-function wordCount(text) {
-  const t = text.trim();
-  return t.length === 0 ? 0 : t.split(/\s+/).length;
-}
+function wordCount(t) { t = t.trim(); return t ? t.split(/\s+/).length : 0; }
 function pairKey(a, b) { return [a, b].sort().join("__"); }
 function initials(name) { return (name || "?").trim().slice(0, 1).toUpperCase(); }
-function decodeJwt(token) {
-  const payload = token.split(".")[1];
-  const json = decodeURIComponent(
-    atob(payload.replace(/-/g, "+").replace(/_/g, "/"))
-      .split("").map(c => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2)).join("")
-  );
-  return JSON.parse(json);
+function escapeHtml(s) { return s.replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+function timeAgo(ts) {
+  const s = Math.floor((Date.now() - ts) / 1000);
+  if (s < 60) return "now";
+  if (s < 3600) return Math.floor(s / 60) + "m";
+  if (s < 86400) return Math.floor(s / 3600) + "h";
+  return Math.floor(s / 86400) + "d";
 }
 function avatarHtml(profile, size) {
-  if (profile.pic) {
-    return `<img src="${profile.pic}" class="avatar" style="width:${size}px;height:${size}px;" />`;
-  }
-  return `<div class="avatar fallback" style="width:${size}px;height:${size}px;background:${profile.bgColor || '#999'};">${initials(profile.name)}</div>`;
+  if (profile.pic) return `<img src="${profile.pic}" class="avatar" style="width:${size}px;height:${size}px;" />`;
+  return `<div class="avatar fallback" style="width:${size}px;height:${size}px;background:${profile.bgColor || currentPalette.accent};">${initials(profile.name)}</div>`;
 }
 
 /* =========================================================================
-   SCREEN NAVIGATION
+   NAVIGATION
    ========================================================================= */
 function goTo(name) {
   document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
@@ -320,31 +430,36 @@ function goTo(name) {
 
 /* =========================================================================
    GOOGLE SIGN-IN
+   Uses the OAuth2 token-client flow with prompt:'select_account' instead of
+   the One Tap/ID-token flow. That forces Google's account chooser on every
+   click, so on ONE machine/browser you can sign in as a different Google
+   account each time (e.g. one per tab) to test multi-person functionality,
+   instead of silently reusing whichever account is cached.
    ========================================================================= */
-function onGoogleSignIn(response) {
-  const data = decodeJwt(response.credential);
-  currentUser = { sub: data.sub, name: data.name, email: data.email, picture: data.picture };
-  afterSignIn();
-}
-
-function devBypassSignIn() {
-  const fakeSub = "dev_" + Math.random().toString(36).slice(2, 8);
-  currentUser = { sub: fakeSub, name: "Dev User", email: fakeSub + "@example.com", picture: null };
-  afterSignIn();
-}
-
-function afterSignIn() {
-  goTo("rules");
-}
+let tokenClient = null;
 
 function initGoogleSignIn() {
   const usingRealClientId = CONFIG.GOOGLE_CLIENT_ID && !CONFIG.GOOGLE_CLIENT_ID.startsWith("YOUR_");
-  if (usingRealClientId && window.google && window.google.accounts) {
-    google.accounts.id.initialize({ client_id: CONFIG.GOOGLE_CLIENT_ID, callback: onGoogleSignIn });
-    google.accounts.id.renderButton(document.getElementById("g_id_button_container"), { theme: "outline", size: "large", width: 260 });
+  const container = document.getElementById("g_id_button_container");
+  if (usingRealClientId && window.google && google.accounts && google.accounts.oauth2) {
+    tokenClient = google.accounts.oauth2.initTokenClient({
+      client_id: CONFIG.GOOGLE_CLIENT_ID,
+      scope: "openid email profile",
+      prompt: "select_account",
+      callback: async (tokenResponse) => {
+        const res = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
+          headers: { Authorization: "Bearer " + tokenResponse.access_token }
+        });
+        const profile = await res.json();
+        currentUser = { sub: profile.sub, name: profile.name, email: profile.email, picture: profile.picture };
+        afterSignIn();
+      }
+    });
+    container.innerHTML = '<button class="btn google" onclick="signInWithGoogle()">' +
+      '<svg width="18" height="15" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.9 29.3 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.1 8 3l5.7-5.7C34.7 6 29.6 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.7-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.6 15.9 18.9 13 24 13c3.1 0 5.8 1.1 8 3l5.7-5.7C34.7 6 29.6 4 24 4c-7.7 0-14.4 4.3-17.7 10.7z"/><path fill="#4CAF50" d="M24 44c5.4 0 10.4-1.8 14-5.4l-6.4-5.4C29.6 34.8 26.9 36 24 36c-5.3 0-9.7-3.4-11.3-8.1l-6.5 5C9.4 39.6 16.1 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.3-2.3 4.3-4.2 5.7l6.4 5.4C40.9 36.6 44 30.9 44 24c0-1.3-.1-2.7-.4-3.5z"/></svg>' +
+      "Continue with Google</button>";
   } else {
-    document.getElementById("g_id_button_container").innerHTML =
-      '<p style="font-size:0.8rem;color:var(--ink-soft);">Google sign-in isn\'t configured yet — add your OAuth Client ID in CONFIG.</p>';
+    container.innerHTML = '<p style="font-size:0.8rem;color:var(--ink-soft-on-bg);">Google sign-in isn\'t configured — add your OAuth Client ID in CONFIG.</p>';
   }
   if (!usingRealClientId && CONFIG.ALLOW_DEV_BYPASS) {
     document.getElementById("dev-banner").style.display = "block";
@@ -352,103 +467,93 @@ function initGoogleSignIn() {
     document.getElementById("dev-bypass-btn").style.display = "block";
   }
 }
+function signInWithGoogle() { tokenClient.requestAccessToken({ prompt: "select_account" }); }
+function devBypassSignIn() {
+  const fakeSub = "dev_" + Math.random().toString(36).slice(2, 8);
+  currentUser = { sub: fakeSub, name: "Dev User", email: fakeSub + "@example.com", picture: null };
+  afterSignIn();
+}
+function afterSignIn() { goTo("welcome"); }
 window.addEventListener("load", () => setTimeout(initGoogleSignIn, 300));
 
 /* =========================================================================
-   GROUP CHOICE
+   WELCOME / GROUP CHOICE
    ========================================================================= */
-function showJoinForm() { document.getElementById("group-buttons").style.display = "none"; document.getElementById("join-form").style.display = "block"; }
-function hideJoinForm() { document.getElementById("group-buttons").style.display = "flex"; document.getElementById("join-form").style.display = "none"; document.getElementById("group-error").innerHTML = ""; }
-
 function createGroup() {
-  const code = genCode(CONFIG.GROUP_CODE_LENGTH);
-  storSet(`group:${code}:members`, JSON.stringify([]));
-  groupCode = code;
+  groupCode = genCode(CONFIG.GROUP_CODE_LENGTH);
+  storSet(`group:${groupCode}:members`, JSON.stringify([]));
   enterProfileScreenForGroup();
 }
-
+function openJoinModal() { document.getElementById("join-modal").classList.add("active"); document.getElementById("join-error").innerHTML = ""; document.getElementById("join-code-input").value = ""; }
+function closeJoinModal() { document.getElementById("join-modal").classList.remove("active"); }
 function joinGroup() {
   const code = document.getElementById("join-code-input").value.trim().toUpperCase();
   if (!code) return;
-  const membersRaw = storGet(`group:${code}:members`);
-  if (membersRaw === null) {
-    document.getElementById("group-error").innerHTML = '<div class="error">That group code wasn\'t found. Double-check it and try again.</div>';
+  if (storGet(`group:${code}:members`) === null) {
+    document.getElementById("join-error").innerHTML = '<div class="error">That code wasn\'t found. Double-check it.</div>';
     return;
   }
-  document.getElementById("group-error").innerHTML = "";
   groupCode = code;
+  closeJoinModal();
   enterProfileScreenForGroup();
 }
+function copyGroupCode() {
+  navigator.clipboard?.writeText(groupCode);
+  alert("Group code copied: " + groupCode);
+}
 
-// One profile per Google account per group: id is derived from the Google sub,
-// so re-entering the same group with the same account reuses the same identity
-// instead of creating a new one.
+// One profile per Google account per group (id derived from Google sub).
 function enterProfileScreenForGroup() {
   myId = "g_" + currentUser.sub;
   const existingRaw = storGet(`profile:${groupCode}:${myId}`);
   if (existingRaw) {
     myProfile = JSON.parse(existingRaw);
+    applyPalette(PALETTES.find(p => p.key === myProfile.paletteKey) || PALETTES[0]);
     ensureMembership();
-    goTo("menu");
-    renderMenu();
+    goTo("menu"); renderMenu();
   } else {
     resetProfileForm();
     goTo("profile");
   }
 }
-
 function ensureMembership() {
-  const membersRaw = storGet(`group:${groupCode}:members`);
-  const members = membersRaw ? JSON.parse(membersRaw) : [];
-  if (!members.includes(myId)) {
-    members.push(myId);
-    storSet(`group:${groupCode}:members`, JSON.stringify(members));
-  }
+  const members = JSON.parse(storGet(`group:${groupCode}:members`) || "[]");
+  if (!members.includes(myId)) { members.push(myId); storSet(`group:${groupCode}:members`, JSON.stringify(members)); }
 }
 
 /* =========================================================================
-   PROFILE SETUP
+   ACCOUNT SETUP
    ========================================================================= */
-let selectedBg = CONFIG.BG_SWATCHES[0];
-
 function resetProfileForm() {
-  document.getElementById("profile-name").value = "";
+  document.getElementById("profile-name").value = currentUser.name || "";
   pendingPic = currentUser.picture || null;
-  selectedBg = CONFIG.BG_SWATCHES[0];
-  renderSwatches();
-  updateProfilePreview();
+  selectedPaletteKey = PALETTES[0].key;
+  renderPaletteGrid();
+  updateProfilePicPreview();
+  onProfileFieldChange();
 }
-
-function renderSwatches() {
-  const wrap = document.getElementById("swatches");
-  wrap.innerHTML = "";
-  CONFIG.BG_SWATCHES.forEach(sw => {
-    const div = document.createElement("div");
-    div.className = "swatch" + (sw === selectedBg ? " selected" : "");
-    div.style.background = sw;
-    div.onclick = () => { selectedBg = sw; renderSwatches(); updateProfilePreview(); };
-    wrap.appendChild(div);
+function renderPaletteGrid() {
+  const grid = document.getElementById("palette-grid");
+  grid.innerHTML = "";
+  PALETTES.forEach(p => {
+    const sw = document.createElement("div");
+    sw.className = "palette-swatch" + (p.key === selectedPaletteKey ? " selected" : "");
+    sw.style.setProperty("--sw-from", p.bgFrom);
+    sw.style.setProperty("--sw-to", p.bgTo);
+    sw.title = p.name;
+    sw.onclick = () => { selectedPaletteKey = p.key; applyPalette(p); renderPaletteGrid(); };
+    grid.appendChild(sw);
   });
+  document.getElementById("palette-name").textContent = PALETTES.find(p => p.key === selectedPaletteKey).name;
 }
-
-function updateProfilePreview() {
-  const img = document.getElementById("profile-pic-preview");
-  const fallback = document.getElementById("profile-pic-fallback");
-  const name = document.getElementById("profile-name").value;
-  if (pendingPic) {
-    img.src = pendingPic; img.style.display = "block"; fallback.style.display = "none";
-  } else {
-    img.style.display = "none"; fallback.style.display = "flex";
-    fallback.style.background = selectedBg;
-    fallback.textContent = initials(name);
-  }
+function updateProfilePicPreview() {
+  const img = document.getElementById("profile-pic-preview"), icon = document.getElementById("profile-pic-icon");
+  if (pendingPic) { img.src = pendingPic; img.style.display = "block"; icon.style.display = "none"; }
+  else { img.style.display = "none"; icon.style.display = "block"; }
 }
-
 function onProfileFieldChange() {
-  updateProfilePreview();
   document.getElementById("profile-submit").disabled = !document.getElementById("profile-name").value.trim();
 }
-
 function handleProfileFile(e) {
   const file = e.target.files && e.target.files[0];
   if (!file) return;
@@ -456,123 +561,171 @@ function handleProfileFile(e) {
   reader.onload = () => {
     const img = new Image();
     img.onload = () => {
-      const maxSize = 160;
-      const scale = Math.min(1, maxSize / Math.max(img.width, img.height));
+      const maxSize = 200, scale = Math.min(1, maxSize / Math.max(img.width, img.height));
       const w = Math.round(img.width * scale), h = Math.round(img.height * scale);
-      const canvas = document.createElement("canvas");
-      canvas.width = w; canvas.height = h;
+      const canvas = document.createElement("canvas"); canvas.width = w; canvas.height = h;
       canvas.getContext("2d").drawImage(img, 0, 0, w, h);
-      pendingPic = canvas.toDataURL("image/jpeg", 0.8);
-      updateProfilePreview();
+      pendingPic = canvas.toDataURL("image/jpeg", 0.85);
+      updateProfilePicPreview();
     };
     img.src = reader.result;
   };
   reader.readAsDataURL(file);
 }
-
 function submitProfile() {
   const name = document.getElementById("profile-name").value.trim();
   if (!name) return;
-  myProfile = { name, pic: pendingPic, bgColor: selectedBg, googleSub: currentUser.sub };
+  myProfile = { name, pic: pendingPic, bgColor: currentPalette.accent, paletteKey: selectedPaletteKey, googleSub: currentUser.sub };
   storSet(`profile:${groupCode}:${myId}`, JSON.stringify(myProfile));
   ensureMembership();
-  goTo("menu");
-  renderMenu();
+  goTo("menu"); renderMenu();
 }
 
 /* =========================================================================
-   MENU — name + photo only, no interests, no sorting
+   MENU — name + photo only
    ========================================================================= */
 function renderMenu() {
   document.getElementById("menu-code").textContent = groupCode;
-  document.getElementById("menu-me-name").textContent = myProfile.name;
-  document.getElementById("menu-me-avatar-wrap").innerHTML = avatarHtml(myProfile, 46);
-
-  const membersRaw = storGet(`group:${groupCode}:members`);
-  const members = membersRaw ? JSON.parse(membersRaw) : [];
+  const members = JSON.parse(storGet(`group:${groupCode}:members`) || "[]");
   const others = members.filter(id => id !== myId);
-  const list = document.getElementById("menu-list");
-  const status = document.getElementById("menu-status");
+  const query = (document.getElementById("menu-search").value || "").toLowerCase();
+  const list = document.getElementById("menu-list"), status = document.getElementById("menu-status");
 
-  if (others.length === 0) {
-    status.textContent = `Nobody else has joined yet — share the code ${groupCode}.`;
-    list.innerHTML = "";
-    return;
-  }
-  status.textContent = "";
-  list.innerHTML = others.map(id => {
+  if (others.length === 0) { status.textContent = `Nobody else has joined yet — share the code ${groupCode}.`; list.innerHTML = ""; return; }
+
+  const rows = others.map(id => {
     const raw = storGet(`profile:${groupCode}:${id}`);
-    if (!raw) return "";
+    if (!raw) return null;
     const p = JSON.parse(raw);
+    if (query && !p.name.toLowerCase().includes(query)) return null;
+    const msgs = JSON.parse(storGet(`chat:${groupCode}:${pairKey(myId, id)}`) || "[]");
+    const last = msgs[msgs.length - 1];
+    const preview = last ? escapeHtml(last.text) : "Say hi 👋";
+    const time = last ? timeAgo(last.ts) : "";
     return `<div class="person" onclick="openChat('${id}')">
-      ${avatarHtml(p, 46)}
-      <div style="font-weight:700;">${escapeHtml(p.name)}</div>
+      ${avatarHtml(p, 48)}
+      <div class="person-mid">
+        <div class="person-name-row"><span class="person-name">${escapeHtml(p.name)}</span><span class="person-time">${time}</span></div>
+        <div class="person-preview"><span class="dot-online"></span>${preview}</div>
+      </div>
     </div>`;
-  }).join("");
-}
+  }).filter(Boolean);
 
-function escapeHtml(s) {
-  return s.replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  status.textContent = rows.length === 0 ? "No matches." : "";
+  list.innerHTML = rows.join("");
 }
-
 function leaveGroup() {
   groupCode = null; myProfile = null; activePartner = null;
-  goTo("groupChoice");
-  hideJoinForm();
+  applyPalette(PALETTES[0]);
+  goTo("welcome");
 }
 
 /* =========================================================================
-   CHAT
+   CHAT — background fades from the palette accent to white/black further down
    ========================================================================= */
 function openChat(partnerId) {
   const raw = storGet(`profile:${groupCode}:${partnerId}`);
   if (!raw) return;
   activePartner = { id: partnerId, profile: JSON.parse(raw) };
   document.getElementById("chat-partner-name").textContent = activePartner.profile.name;
-  document.getElementById("chat-partner-avatar-wrap").innerHTML = avatarHtml(activePartner.profile, 46);
-  document.getElementById("chat-draft").value = "";
-  onDraftChange();
-  goTo("chat");
-  renderChat();
+  document.getElementById("chat-partner-avatar-wrap").innerHTML = avatarHtml(activePartner.profile, 40);
+  goTo("chat"); renderChat();
 }
-
 function chatKey() { return `chat:${groupCode}:${pairKey(myId, activePartner.id)}`; }
+function loadMessages() { return JSON.parse(storGet(chatKey()) || "[]"); }
 
-function renderChat() {
-  const raw = storGet(chatKey());
-  const messages = raw ? JSON.parse(raw) : [];
+// Only messages the user wrote themselves, and only "free" text (not the
+// fixed meetup template), count against their word budget for this convo.
+function wordsUsedBy(userId, messages) {
+  return messages.filter(m => m.from === userId && m.type !== "meetup")
+    .reduce((sum, m) => sum + wordCount(m.text), 0);
+}
+function myRemainingWords(messages) { return Math.max(0, CONFIG.WORD_BUDGET - wordsUsedBy(myId, messages || loadMessages())); }
+
+function renderChat(forceComposer = false) {
+  const messages = loadMessages();
   const win = document.getElementById("chat-window");
-  if (messages.length === 0) {
-    win.innerHTML = '<div class="empty">No messages yet. Break the ice — briefly.</div>';
-    return;
-  }
-  win.innerHTML = messages.map(m =>
-    `<div class="bubble ${m.from === myId ? 'mine' : 'theirs'}">${escapeHtml(m.text)}</div>`
-  ).join("");
-  win.scrollTop = win.scrollHeight;
+  const wasNearBottom = win.scrollHeight - win.scrollTop - win.clientHeight < 40;
+  const previousScrollTop = win.scrollTop;
+  win.innerHTML = messages.length === 0
+    ? '<div class="empty">No messages yet. Break the ice — briefly.</div>'
+    : messages.map(m => `<div class="bubble ${m.from === myId ? "mine" : "theirs"}">${escapeHtml(m.text)}</div>`).join("");
+  win.scrollTop = wasNearBottom ? win.scrollHeight : previousScrollTop;
+  renderComposer(messages, forceComposer);
 }
 
-function onDraftChange() {
-  const text = document.getElementById("chat-draft").value;
-  const words = wordCount(text);
-  const over = words > CONFIG.MAX_WORDS_PER_MESSAGE;
+function renderComposer(messages, force = false) {
+  messages = messages || loadMessages();
+  const remaining = myRemainingWords(messages);
+  document.getElementById("chat-budget-label").textContent =
+    remaining > 0 ? `${remaining} of ${CONFIG.WORD_BUDGET} words left with them` : "Out of words — propose meeting up";
+
+  const box = document.getElementById("chat-composer");
+  const mode = remaining > 0 ? "free" : "meetup";
+  if (!force && box.dataset.mode === mode) return;
+  box.dataset.mode = mode;
+  if (remaining > 0) {
+    box.innerHTML = `
+      <textarea id="chat-draft" class="input" placeholder="Type a short message…"></textarea>
+      <div id="chat-wordcount" class="wordcount">0 / ${remaining} words left</div>
+      <button id="chat-send-btn" class="btn pink" disabled>Send</button>`;
+    document.getElementById("chat-draft").addEventListener("input", () => onDraftChange(remaining));
+    document.getElementById("chat-send-btn").addEventListener("click", () => sendMessage(remaining));
+  } else {
+    box.innerHTML = `
+      <div class="meetup-sentence">
+        Looks like I'm out of messages, how about we meet at
+        <input id="mu-loc" class="mu-input loc" placeholder="place" />
+        on the
+        <input id="mu-day" class="mu-input day" placeholder="day" maxlength="2" />
+        <input id="mu-month" class="mu-input month" placeholder="month" />
+        <input id="mu-time" class="mu-input time" type="time" />
+        to keep chatting!
+      </div>
+      <button id="chat-send-btn" class="btn pink" disabled>Send</button>`;
+    ["mu-loc", "mu-day", "mu-month", "mu-time"].forEach(id =>
+      document.getElementById(id).addEventListener("input", onMeetupFieldChange)
+    );
+    document.getElementById("chat-send-btn").addEventListener("click", sendMeetup);
+  }
+}
+
+function onDraftChange(remaining) {
+  const text = document.getElementById("chat-draft").value, words = wordCount(text), over = words > remaining;
   const cnt = document.getElementById("chat-wordcount");
-  cnt.textContent = `${words} / ${CONFIG.MAX_WORDS_PER_MESSAGE} words`;
+  cnt.textContent = `${words} / ${remaining} words left`;
   cnt.className = "wordcount" + (over ? " over" : "");
   document.getElementById("chat-send-btn").disabled = !text.trim() || over;
 }
 
-function sendMessage() {
-  const draftEl = document.getElementById("chat-draft");
-  const text = draftEl.value.trim();
-  if (!text || wordCount(text) > CONFIG.MAX_WORDS_PER_MESSAGE) return;
-  const raw = storGet(chatKey());
-  const messages = raw ? JSON.parse(raw) : [];
-  messages.push({ from: myId, text, ts: Date.now() });
+function sendMessage(remaining) {
+  const draftEl = document.getElementById("chat-draft"), text = draftEl.value.trim();
+  if (!text || wordCount(text) > remaining) return;
+  const messages = loadMessages();
+  messages.push({ from: myId, text, ts: Date.now(), type: "free" });
   storSet(chatKey(), JSON.stringify(messages));
-  draftEl.value = "";
-  onDraftChange();
-  renderChat();
+  renderChat(true);
+}
+
+function onMeetupFieldChange() {
+  const loc = document.getElementById("mu-loc").value.trim();
+  const day = document.getElementById("mu-day").value.trim();
+  const month = document.getElementById("mu-month").value.trim();
+  const time = document.getElementById("mu-time").value.trim();
+  document.getElementById("chat-send-btn").disabled = !(loc && day && month && time);
+}
+
+function sendMeetup() {
+  const loc = document.getElementById("mu-loc").value.trim();
+  const day = document.getElementById("mu-day").value.trim();
+  const month = document.getElementById("mu-month").value.trim();
+  const time = document.getElementById("mu-time").value.trim();
+  if (!(loc && day && month && time)) return;
+  const text = `Looks like I'm out of messages, how about we meet at ${loc} on the ${day} ${month} ${time} to keep chatting!`;
+  const messages = loadMessages();
+  messages.push({ from: myId, text, ts: Date.now(), type: "meetup" });
+  storSet(chatKey(), JSON.stringify(messages));
+  renderChat(true);
 }
 </script>
 </body>
